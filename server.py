@@ -214,6 +214,56 @@ def scrape_bgg_collection(username):
         print(f"  ✗ Playwright scrape error: {e}")
         return None
 
+def fetch_collection_xml(username):
+    """Fetch collection via BGG XML API2 (works from datacenter IPs unlike the HTML pages)."""
+    import xml.etree.ElementTree as ET
+    print(f"Fetching collection for {username} via XML API...")
+    url = f"https://boardgamegeek.com/xmlapi2/collection?username={urllib.parse.quote(username)}&own=1&subtype=boardgame&excludesubtype=boardgameexpansion&stats=0"
+    
+    max_retries = 8
+    for attempt in range(max_retries):
+        try:
+            resp = opener.open(urllib.request.Request(url, headers={
+                'User-Agent': BROWSER_UA,
+                'Accept': 'application/xml',
+            }), timeout=30)
+            status = resp.getcode()
+            if status == 200:
+                data = resp.read().decode('utf-8')
+                root = ET.fromstring(data)
+                games = []
+                for item in root.findall('.//item'):
+                    obj_id = item.get('objectid')
+                    name_el = item.find('name')
+                    if obj_id and name_el is not None:
+                        games.append({
+                            'id': int(obj_id),
+                            'name': name_el.text or ''
+                        })
+                print(f"  ✓ XML API returned {len(games)} games")
+                return games
+            elif status == 202:
+                # BGG queues collection requests — retry after a delay
+                print(f"  ⏳ XML API returned 202 (queued), retry {attempt+1}/{max_retries}...")
+                time.sleep(3)
+                continue
+            else:
+                print(f"  ✗ XML API returned status {status}")
+                return None
+        except urllib.error.HTTPError as e:
+            if e.code == 202:
+                print(f"  ⏳ XML API returned 202 (queued), retry {attempt+1}/{max_retries}...")
+                time.sleep(3)
+                continue
+            print(f"  ✗ XML API HTTP error: {e.code}")
+            return None
+        except Exception as e:
+            print(f"  ✗ XML API error: {e}")
+            return None
+    
+    print(f"  ✗ XML API: gave up after {max_retries} retries (still 202)")
+    return None
+
 class ProxyHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.startswith("/bggproxy/"):
@@ -243,14 +293,20 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         if not username:
             self._json_response(400, {"error": "Missing username parameter"})
             return
+        
+        # Try XML API first (works from datacenter IPs)
+        games = fetch_collection_xml(username)
+        
+        # Fallback to Playwright scraping if XML fails
+        if games is None:
+            print("  XML API failed, trying Playwright scraper...")
+            games = scrape_bgg_collection(username)
             
-        games = scrape_bgg_collection(username)
         if games is not None:
             self._json_response(200, {"games": games, "count": len(games)})
         else:
-            # Fallback to old error message if scraping fails
             self._json_response(500, {
-                "error": "Failed to scrape BGG collection automatically.",
+                "error": "Failed to fetch BGG collection via both XML API and scraping.",
                 "workaround": "Use CSV import instead: BGG Collection → ⋯ → Export as CSV → Upload to app"
             })
 
