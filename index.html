@@ -1937,7 +1937,7 @@
     /* ═══════════════════════════════════════════════════
        NETWORKING — LOCAL PROXY OR CORS PROXY FALLBACK
        ═══════════════════════════════════════════════════ */
-    const USE_LOCAL_PROXY = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const USE_LOCAL_PROXY = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.port === '8042';
     const BGG_BASE = 'https://boardgamegeek.com';
 
     // External CORS proxies (fallback when not using server.py)
