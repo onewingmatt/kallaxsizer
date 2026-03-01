@@ -16,7 +16,6 @@ test_scrape*.py
 test_scrape.py
 
 # Raw data/analysis files (dev artifacts)
-*.txt
 fetch_results.txt
 real_collection_dims.txt
 dims_to_add.txt
