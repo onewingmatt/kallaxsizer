@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=www-data
+User=onewing
 WorkingDirectory=/opt/kallaxsizer
 ExecStart=/opt/kallaxsizer/.venv/bin/python3 /opt/kallaxsizer/server.py
 Restart=on-failure
