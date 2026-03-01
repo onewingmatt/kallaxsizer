@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/opt/kallaxsizer
-ExecStart=/usr/bin/python3 /opt/kallaxsizer/server.py
+ExecStart=/opt/kallaxsizer/.venv/bin/python3 /opt/kallaxsizer/server.py
 Restart=on-failure
 RestartSec=5
 
