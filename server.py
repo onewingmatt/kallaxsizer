@@ -293,20 +293,13 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         if not username:
             self._json_response(400, {"error": "Missing username parameter"})
             return
-        
-        # Try XML API first (works from datacenter IPs)
-        games = fetch_collection_xml(username)
-        
-        # Fallback to Playwright scraping if XML fails
-        if games is None:
-            print("  XML API failed, trying Playwright scraper...")
-            games = scrape_bgg_collection(username)
             
+        games = scrape_bgg_collection(username)
         if games is not None:
             self._json_response(200, {"games": games, "count": len(games)})
         else:
             self._json_response(500, {
-                "error": "Failed to fetch BGG collection via both XML API and scraping.",
+                "error": "Failed to scrape BGG collection automatically.",
                 "workaround": "Use CSV import instead: BGG Collection → ⋯ → Export as CSV → Upload to app"
             })
 

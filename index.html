@@ -1994,69 +1994,19 @@
         throw new Error('Username cannot be empty');
       }
 
-      // Strategy 1: Try server-side proxy first (fastest if it works)
+      // When running via local server, use our Playwright scraper
       if (USE_LOCAL_PROXY) {
-        try {
-          const resp = await fetch(`/api/collection?username=${encodeURIComponent(username)}`);
-          if (resp.ok) {
-            const data = await resp.json();
-            if (data.games && data.games.length > 0) {
-              return data.games;
-            }
-          }
-        } catch (e) {
-          console.warn('Server proxy failed, trying client-side fetch...', e);
+        const resp = await fetch(`/api/collection?username=${encodeURIComponent(username)}`);
+        if (!resp.ok) {
+          const data = await resp.json().catch(() => ({}));
+          throw new Error(data.error || `Server error: ${resp.status}`);
         }
+        const data = await resp.json();
+        return data.games || [];
       }
 
-      // Strategy 2: Fetch BGG XML API directly from the browser (user's residential IP)
-      // BGG blocks datacenter IPs but allows residential IPs
-      const xmlUrl = `https://boardgamegeek.com/xmlapi2/collection?username=${encodeURIComponent(username)}&own=1&subtype=boardgame&excludesubtype=boardgameexpansion`;
-
-      for (let attempt = 0; attempt < 6; attempt++) {
-        try {
-          const resp = await fetch(xmlUrl);
-          if (resp.status === 202) {
-            // BGG queues collection requests — retry after delay
-            console.log(`BGG XML API returned 202 (queued), retry ${attempt + 1}/6...`);
-            await new Promise(r => setTimeout(r, 3000));
-            continue;
-          }
-          if (resp.ok) {
-            const xml = await resp.text();
-            const games = parseCollectionXml(xml);
-            if (games.length > 0) return games;
-          }
-        } catch (e) {
-          // CORS error — BGG blocks cross-origin requests from browsers
-          console.warn('Direct BGG fetch failed (likely CORS):', e.message);
-          break;
-        }
-      }
-
-      // Strategy 3: Proxy through our server with /bggproxy/ path
-      if (USE_LOCAL_PROXY) {
-        try {
-          const proxyUrl = `/bggproxy/xmlapi2/collection?username=${encodeURIComponent(username)}&own=1&subtype=boardgame&excludesubtype=boardgameexpansion`;
-          for (let attempt = 0; attempt < 6; attempt++) {
-            const resp = await fetch(proxyUrl);
-            if (resp.status === 202) {
-              console.log(`BGG proxy returned 202 (queued), retry ${attempt + 1}/6...`);
-              await new Promise(r => setTimeout(r, 3000));
-              continue;
-            }
-            if (resp.ok) {
-              const xml = await resp.text();
-              const games = parseCollectionXml(xml);
-              if (games.length > 0) return games;
-            }
-          }
-        } catch (e) {
-          console.warn('Proxy XML fetch also failed:', e);
-        }
-      }
-
-      throw new Error('No owned games found for that username. Check your BGG username and make sure you have games marked as "Owned".');
+      // Fallback (if not running via server.py)
+      throw new Error("Automatic collection fetch requires running the app via server.py.");
     }
 
     function parseCollectionXml(xml) {
