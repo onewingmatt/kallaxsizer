@@ -1,0 +1,27 @@
+# Cache and generated data
+dims_cache.json
+bgg_config.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Node
+node_modules/
+
+# Test/scratch scripts
+test_bug*.js
+test_scrape*.py
+test_scrape.py
+
+# Raw data/analysis files (dev artifacts)
+*.txt
+fetch_results.txt
+real_collection_dims.txt
+dims_to_add.txt
+missing_games.csv
+test_export.csv
+
+# Misc
+*.log

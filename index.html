@@ -1,0 +1,3687 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Kallax Collection Calculator</title>
+  <style>
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+      }
+
+      .header,
+      .container>div:not(#resultsArea),
+      .results-area>div:not(#shelfRosterCard),
+      .btn {
+        display: none !important;
+      }
+
+      #shelfRosterCard {
+        display: block !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+      }
+
+      /* Allow the container to use the full page width */
+      .container {
+        max-width: none !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      /* Force the roster body open and visible during print */
+      #shelfRosterBody {
+        display: block !important;
+      }
+
+      /* Compactness styling for print */
+      .print-roster-grid {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+        gap: 0.25rem !important;
+      }
+
+      .print-roster-grid>div {
+        padding: 0.25rem !important;
+        border: 1px solid #ccc !important;
+        background: transparent !important;
+        page-break-inside: avoid;
+      }
+
+      #shelfRosterBody .game-row {
+        padding: 0.1rem 0 !important;
+        font-size: 0.75rem !important;
+        line-height: 1.1 !important;
+      }
+
+      #shelfRosterBody .game-row span {
+        font-size: 0.75rem !important;
+      }
+
+      #shelfRosterCard h2 {
+        font-size: 1.2rem !important;
+        margin-bottom: 0.5rem !important;
+      }
+
+      #shelfRosterCount,
+      #shelfRosterChevron {
+        font-size: 0.8rem !important;
+      }
+
+      #shelfRosterCard {
+        position: static;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        background: transparent !important;
+      }
+
+      .btn {
+        display: none !important;
+      }
+
+      .print-only-filter-header {
+        display: block !important;
+      }
+    }
+  </style>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kallax Konfigurator</title>
+  <meta name="description"
+    content="Calculate how many IKEA Kallax shelves you need for your board game collection using BoardGameGeek data.">
+  <style>
+    /* ── CSS Variables & Reset ── */
+    :root {
+      --bg: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-card-alt: #f1f5f9;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --teal: #0d9488;
+      --teal-hover: #0f766e;
+      --teal-light: #ccfbf1;
+      --teal-dim: rgba(13, 148, 136, 0.15);
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --green: #22c55e;
+      --cube-empty: #e2e8f0;
+      --cube-filled: var(--teal);
+      --cube-border: #cbd5e1;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.1);
+      --radius: 8px;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0f172a;
+        --bg-card: #1e293b;
+        --bg-card-alt: #334155;
+        --text: #e2e8f0;
+        --text-secondary: #94a3b8;
+        --border: #334155;
+        --teal-light: #134e4a;
+        --teal-dim: rgba(13, 148, 136, 0.25);
+        --cube-empty: #334155;
+        --cube-border: #475569;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-alt: #334155;
+      --text: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --border: #334155;
+      --teal-light: #134e4a;
+      --teal-dim: rgba(13, 148, 136, 0.25);
+      --cube-empty: #334155;
+      --cube-border: #475569;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    :root[data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-card-alt: #f1f5f9;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --teal-light: #ccfbf1;
+      --teal-dim: rgba(13, 148, 136, 0.15);
+      --cube-empty: #e2e8f0;
+      --cube-border: #cbd5e1;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #14b8a6 100%);
+      color: #fff;
+      padding: 1.5rem 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header p {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      margin-top: 0.25rem;
+    }
+
+    .easter-egg {
+      position: absolute;
+      bottom: 4px;
+      right: 12px;
+      font-size: 0.6rem;
+      opacity: 0.25;
+      font-family: monospace;
+      transition: opacity 0.3s;
+    }
+
+    .easter-egg:hover {
+      opacity: 0.7;
+    }
+
+    /* ── Container ── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── Form ── */
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input,
+    select {
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: var(--font);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-dim);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 0.55rem 1.25rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--teal);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--teal-hover);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--teal);
+      border: 2px solid var(--teal);
+    }
+
+    .btn-secondary:hover {
+      background: var(--teal-dim);
+    }
+
+    /* ── Progress ── */
+    .progress-area {
+      display: none;
+      margin-top: 1rem;
+    }
+
+    .progress-area.visible {
+      display: block;
+    }
+
+    .progress-bar-track {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-card-alt);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--teal), #14b8a6);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-status {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      min-height: 1.2em;
+    }
+
+    /* ── Config Bar ── */
+    .config-bar {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    /* ── Summary Stats ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card-alt);
+      border-radius: var(--radius);
+      padding: 1rem;
+      text-align: center;
+      border: 1px solid var(--border);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--teal);
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.25rem;
+    }
+
+    /* ── Kallax Visual ── */
+    .kallax-units {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: center;
+    }
+
+    .kallax-unit {
+      display: inline-block;
+    }
+
+    .kallax-label {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+    }
+
+    .kallax-grid {
+      display: inline-grid;
+      gap: 4px;
+      padding: 6px;
+      background: #78716c;
+      border-radius: 4px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .kallax-cube {
+      width: 36px;
+      height: 36px;
+      border-radius: 3px;
+      transition: background 0.3s;
+      position: relative;
+    }
+
+    .kallax-cube.filled {
+      background: var(--cube-filled);
+    }
+
+    .kallax-cube.empty {
+      background: var(--cube-empty);
+    }
+
+    .kallax-cube.toobig {
+      background: var(--amber);
+    }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .badge-bgg {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-known {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .badge-common {
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    .badge-fit-yes {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+
+    .badge-fit-no {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .badge-card {
+      background: #fce7f3;
+      color: #9d174d;
+    }
+
+    .badge-small {
+      background: #fef08a;
+      color: #854d0e;
+    }
+
+    .badge-medium {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-standard {
+      background: #d1d5db;
+      color: #1f2937;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .badge-bgg {
+        background: #1e3a5f;
+        color: #93c5fd;
+      }
+
+      :root:not([data-theme="light"]) .badge-known {
+        background: #451a03;
+        color: #fcd34d;
+      }
+
+      :root:not([data-theme="light"]) .badge-common {
+        background: #334155;
+        color: #94a3b8;
+      }
+
+      :root:not([data-theme="light"]) .badge-fit-yes {
+        background: #14532d;
+        color: #86efac;
+      }
+
+
+      :root:not([data-theme="light"]) .badge-fit-no {
+        background: #450a0a;
+        color: #fca5a5;
+      }
+
+      :root:not([data-theme="light"]) .badge-card {
+        background: #500724;
+        color: #f472b6;
+      }
+
+      :root:not([data-theme="light"]) .badge-small {
+        background: #451a03;
+        color: #fcd34d;
+      }
+
+      :root:not([data-theme="light"]) .badge-medium {
+        background: #1e3a5f;
+        color: #93c5fd;
+      }
+
+      :root:not([data-theme="light"]) .badge-standard {
+        background: #374151;
+        color: #d1d5db;
+      }
+    }
+
+    [data-theme="dark"] .badge-bgg {
+      background: #1e3a5f;
+      color: #93c5fd;
+    }
+
+    [data-theme="dark"] .badge-known {
+      background: #451a03;
+      color: #fcd34d;
+    }
+
+    [data-theme="dark"] .badge-common {
+      background: #334155;
+      color: #94a3b8;
+    }
+
+    [data-theme="dark"] .badge-fit-yes {
+      background: #14532d;
+      color: #86efac;
+    }
+
+
+    [data-theme="dark"] .badge-fit-no {
+      background: #450a0a;
+      color: #fca5a5;
+    }
+
+    [data-theme="dark"] .badge-card {
+      background: #500724;
+      color: #f472b6;
+    }
+
+    [data-theme="dark"] .badge-small {
+      background: #451a03;
+      color: #fcd34d;
+    }
+
+    [data-theme="dark"] .badge-medium {
+      background: #1e3a5f;
+      color: #93c5fd;
+    }
+
+    [data-theme="dark"] .badge-standard {
+      background: #374151;
+      color: #d1d5db;
+    }
+
+    [data-theme="light"] .badge-bgg {
+      background: #dbeafe;
+      color: #1e3a8a;
+    }
+
+    [data-theme="light"] .badge-known {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    [data-theme="light"] .badge-common {
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    [data-theme="light"] .badge-fit-yes {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+
+    [data-theme="light"] .badge-fit-no {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    [data-theme="light"] .badge-card {
+      background: #fce7f3;
+      color: #9d174d;
+    }
+
+    [data-theme="light"] .badge-small {
+      background: #fef08a;
+      color: #854d0e;
+    }
+
+    [data-theme="light"] .badge-medium {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    [data-theme="light"] .badge-standard {
+      background: #d1d5db;
+      color: #1f2937;
+    }
+
+    /* ── Table ── */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    thead th {
+      background: var(--bg-card-alt);
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      border-bottom: 2px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    thead th:hover {
+      color: var(--teal);
+    }
+
+    thead th .sort-arrow {
+      margin-left: 4px;
+      font-size: 0.7rem;
+    }
+
+    tbody td {
+      padding: 0.55rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tbody tr {
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover {
+      background: var(--teal-dim);
+    }
+
+    /* ── Misc ── */
+    .hidden {
+      display: none !important;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .error-msg {
+      color: var(--red);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .error-msg.success {
+      color: var(--green);
+    }
+
+    .results-area {
+      display: none;
+    }
+
+    .results-area.visible {
+      display: block;
+    }
+
+    @media (max-width: 600px) {
+      .header h1 {
+        font-size: 1.3rem;
+      }
+
+      .container {
+        padding: 1rem;
+      }
+
+      .form-row {
+        flex-direction: column;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--bg);
+      padding: 1.5rem;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      transform: translateY(20px);
+      transition: transform 0.2s;
+    }
+
+    .modal-overlay.open .modal-content {
+      transform: translateY(0);
+    }
+
+    .game-row {
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .game-row:hover {
+      background: var(--border);
+    }
+
+    .game-row.excluded-game {
+      opacity: 0.45;
+      background: var(--bg-card-alt);
+    }
+
+    .game-row.excluded-game:hover {
+      background: var(--border);
+      opacity: 0.65;
+    }
+
+    .badge-custom {
+      background: #8b5cf6;
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="header">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start">
+      <div>
+        <h1 style="margin:0">📦 Kallax Konfigurator <span class="badge badge-beta">BETA</span></h1>
+        <p style="margin:0.5rem 0 0">How many IKEA Kallax shelves do you need for your board game collection?</p>
+      </div>
+      <button id="themeToggle" class="btn btn-secondary"
+        style="padding:0.4rem 0.8rem; border-radius:20px; font-size:1.2rem; cursor:pointer"
+        title="Toggle Theme">🌓</button>
+    </div>
+    <span class="easter-egg">import antigravity # xkcd.com/353</span>
+  </header>
+
+  <div class="container">
+    <!-- Login / Fetch Section -->
+    <div class="card" id="loginCard">
+      <h2>� Import Your Collection</h2>
+      <div style="padding:1rem; background:var(--alt-bg); border-radius:8px; margin-bottom:1rem">
+        <p style="margin:0 0 0.75rem; font-weight:bold; color:var(--text)">Step 1: Open Your BGG Collection</p>
+        <div class="form-group" style="margin-bottom:0.75rem">
+          <label for="bggUsername">Enter your BGG username:</label>
+          <div style="display:flex; gap:0.5rem">
+            <input type="text" id="bggUsername" placeholder="e.g. onewingmatt"
+              style="flex:1; padding:0.5rem; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text)">
+            <button type="button" id="fetchBtn" class="btn btn-primary" style="white-space:nowrap">📥 Fetch
+              Automatically</button>
+            <button type="button" id="openCollectionBtn" class="btn btn-secondary" style="white-space:nowrap"
+              title="If automatic fetch fails, open BGG to get CSV">🔗 Open BGG</button>
+          </div>
+        </div>
+        <p style="margin:0.5rem 0 0; font-size:0.9rem; color:var(--text-secondary)">This opens your collection where you
+          can download the CSV.</p>
+      </div>
+
+      <div style="padding:1rem; background:var(--alt-bg); border-radius:8px; margin-bottom:1rem">
+        <p style="margin:0 0 0.75rem; font-weight:bold; color:var(--text)">Step 2: Download & Upload CSV</p>
+        <ul style="margin:0.5rem 0 0; padding-left:1.5rem; line-height:1.6">
+          <li>Click the <strong>⋯ menu</strong> on your collection page</li>
+          <li>Select <strong>"Download board games as CSV"</strong></li>
+          <li>Then use the 📁 button below to upload the file</li>
+        </ul>
+      </div>
+
+      <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem">
+        <label for="csvUpload" class="btn btn-primary"
+          style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; margin:0; flex:1; min-width:200px"
+          title="Import collection CSV from BGG">📁 CSV
+          Upload</label>
+        <input type="file" id="csvUpload" accept=".csv" style="display:none">
+        <button type="button" class="btn btn-secondary" id="demoBtn" style="flex:1; min-width:200px">🎲 Demo
+          Mode</button>
+      </div>
+
+      <!-- Dynamic BGG dims panel – populated by initDimsPanel() -->
+      <div id="bgDimsPanel" style="margin:1rem 0"></div>
+
+      <div id="cacheStatus" style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-secondary);display:none"></div>
+      <div id="errorMsg" class="error-msg hidden"></div>
+      <div class="progress-area" id="progressArea">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-status" id="progressStatus"></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-area" id="resultsArea">
+      <!-- Config Bar -->
+      <div class="card">
+        <h2>⚙️ Kallax Configuration</h2>
+        <div class="config-bar" style="align-items:flex-start">
+          <div class="form-group" style="flex:1.5">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem">
+              <label style="margin:0">Shelf Configuration</label>
+              <div style="display:flex;gap:0.25rem" id="shelfModeToggle">
+                <button class="btn btn-primary" id="btnModeBasic" style="padding:0.15rem 0.5rem;font-size:0.75rem"
+                  onclick="setShelfMode('basic')">Basic</button>
+                <button class="btn btn-secondary" id="btnModeAdv" style="padding:0.15rem 0.5rem;font-size:0.75rem"
+                  onclick="setShelfMode('advanced')">Advanced</button>
+              </div>
+            </div>
+
+            <!-- Basic Mode: Single Size -->
+            <div id="basicShelfSelect">
+              <select id="kallaxSize" style="width:100%">
+                <option value="2x2">2×2 (4 cubes)</option>
+                <option value="2x4" selected>2×4 (8 cubes)</option>
+                <option value="4x4">4×4 (16 cubes)</option>
+                <option value="5x5">5×5 (25 cubes)</option>
+              </select>
+            </div>
+
+            <!-- Advanced Mode: Custom List -->
+            <div id="advShelfSelect"
+              style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.5rem">
+              <div id="myShelvesList" style="display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.5rem">
+                <!-- Javascript will inject custom shelves here -->
+              </div>
+              <div style="display:flex;gap:0.4rem">
+                <select id="addShelfSize" style="flex:1;padding:0.3rem;font-size:0.85rem">
+                  <option value="1x4">1×4 (4 cubes)</option>
+                  <option value="2x2">2×2 (4 cubes)</option>
+                  <option value="2x4" selected>2×4 (8 cubes)</option>
+                  <option value="3x3">3×3 (9 cubes)</option>
+                  <option value="3x4">3×4 (12 cubes)</option>
+                  <option value="4x4">4×4 (16 cubes)</option>
+                  <option value="5x5">5×5 (25 cubes)</option>
+                </select>
+                <button class="btn btn-secondary" style="padding:0.3rem 0.6rem;font-size:0.85rem"
+                  onclick="addCustomShelf()">+ Add</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="orientation">Storage Orientation</label>
+            <select id="orientation">
+              <option value="vertical">Vertical (like books)</option>
+              <option value="horizontal">Horizontal (stacked flat)</option>
+              <option value="bestfit" selected>Best Fit (mixed)</option>
+              <option value="doubledeep">Double Deep (front & back)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="minSize">Minimum Game Size</label>
+            <select id="minSize">
+              <option value="all">All games</option>
+              <option value="card">Card games & up (≥13cm)</option>
+              <option value="small">Small boxes & up (≥20cm)</option>
+              <option value="medium">Medium boxes & up (≥25cm)</option>
+              <option value="standard">Standard boxes & up (≥29cm)</option>
+            </select>
+          </div>
+          <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;padding-top:0.25rem">
+            <input type="checkbox" id="excludeFallback"
+              style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
+            <label for="excludeFallback" style="margin:0;cursor:pointer;font-size:0.9rem">Exclude games with unknown
+              dimensions</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="card">
+        <h2>📊 Summary</h2>
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="stat-value" id="statGames">0</div>
+            <div class="stat-label">Total Games</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statCubes">0</div>
+            <div class="stat-label">Cubes Needed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statUnits">0</div>
+            <div class="stat-label">Kallax Units</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statSpare">0</div>
+            <div class="stat-label">Spare Cubes</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kallax Visual -->
+      <div class="card">
+        <h2>🏗️ Kallax Layout</h2>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem">Click a cube to see its contents</p>
+        <div class="kallax-units" id="kallaxVisual"></div>
+        <div id="cubeBreakdown" style="margin-top:1.5rem"></div>
+      </div>
+
+      <!-- Shelf Roster -->
+      <div class="card" id="shelfRosterCard" style="display:none">
+        <div onclick="toggleShelfRoster()"
+          style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none">
+          <h2 style="margin:0">📋 Shelf Roster</h2>
+          <div style="display:flex;align-items:center;gap:0.75rem">
+            <span style="font-size:0.8rem;color:var(--text-secondary)" id="shelfRosterCount"></span>
+            <button class="btn btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.8rem"
+              onclick="event.stopPropagation();exportRoster()">📥 Export</button>
+            <button class="btn btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.8rem"
+              onclick="event.stopPropagation();window.print()">🖨️ Print</button>
+            <span id="shelfRosterChevron"
+              style="font-size:1.1rem;color:var(--text-secondary);transition:transform 0.2s">▶</span>
+          </div>
+        </div>
+        <div id="shelfRosterBody" style="display:none;margin-top:1rem"></div>
+      </div>
+
+      <!-- Games Table -->
+      <div class="card">
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem">
+          <h2 style="margin:0">🎮 Games (<span id="gamesCount">0</span>)</h2>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap">
+            <input type="text" id="searchFilter" placeholder="Search games..."
+              style="padding:0.5rem; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text)">
+            <select id="fitFilter"
+              style="padding:0.5rem; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text)">
+              <option value="all">All Fits</option>
+              <option value="yes">✓ Fits</option>
+              <option value="toobig">✗ Too Big</option>
+            </select>
+            <button class="btn btn-secondary" onclick="openBatchEditModal()" id="batchEditBtn" style="display:none">📋
+              Batch Edit</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="gamesTable">
+            <thead>
+              <tr>
+                <th style="width:40px;text-align:center" title="Exclude from shelf">✓</th>
+                <th style="width:40px;text-align:center" title="Passes size filter">Size</th>
+                <th data-sort="name">Name <span class="sort-arrow"></span></th>
+                <th data-sort="dims">Dimensions (cm) <span class="sort-arrow"></span></th>
+                <th data-sort="source">Source <span class="sort-arrow"></span></th>
+                <th data-sort="fit">Fit Status <span class="sort-arrow"></span></th>
+                <th data-sort="cubes">Cube # <span class="sort-arrow"></span></th>
+              </tr>
+            </thead>
+            <tbody id="gamesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-content">
+      <h3 style="margin-top:0; margin-bottom:1rem" id="editModalTitle">Edit Dimensions</h3>
+      <input type="hidden" id="editGameId">
+      <div class="form-group">
+        <label>Length (cm)</label>
+        <input type="number" step="0.1" id="editL" min="0.1" max="200" required>
+      </div>
+      <div class="form-group" style="margin-top:0.75rem">
+        <label>Width (cm)</label>
+        <input type="number" step="0.1" id="editW" min="0.1" max="200" required>
+      </div>
+      <div class="form-group" style="margin-top:0.75rem">
+        <label>Height (cm)</label>
+        <input type="number" step="0.1" id="editH" min="0.1" max="200" required>
+      </div>
+      <div class="form-group" style="margin-top:0.75rem">
+        <label>Size Category Override</label>
+        <select id="editSizeOverride">
+          <option value="">— Auto (from dimensions)</option>
+          <option value="card">Card Game</option>
+          <option value="small">Small Box</option>
+          <option value="medium">Medium Box</option>
+          <option value="standard">Standard Box</option>
+        </select>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem">
+        <button type="button" class="btn" onclick="closeEditModal()"
+          style="background:transparent;color:var(--text);border:1px solid var(--border)">Cancel</button>
+        <button type="button" class="btn" onclick="saveEditModal()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch Edit Modal -->
+  <div class="modal-overlay" id="batchEditModal">
+    <div class="modal-content" style="max-width:600px; max-height:70vh; overflow-y:auto">
+      <h3 style="margin-top:0; margin-bottom:1rem">Batch Edit Missing Dimensions</h3>
+      <div id="batchEditList"
+        style="max-height:50vh; overflow-y:auto; border:1px solid var(--border); border-radius:6px; padding:0.5rem">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem">
+        <button type="button" class="btn" onclick="closeBatchEditModal()"
+          style="background:transparent;color:var(--text);border:1px solid var(--border)">Cancel</button>
+        <button type="button" class="btn" onclick="saveBatchEdits()">Save All</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ═══════════════════════════════════════════════════
+       CONSTANTS
+       ═══════════════════════════════════════════════════ */
+    const KALLAX = { depth: 39, width: 33, height: 33 };
+    const WIDTH_OVERHANG_TOLERANCE = 2; // Allow up to 2cm overhang on width/height
+    const DEPTH_OVERHANG_TOLERANCE = 4; // Allow up to 4cm overhang on depth (front/back)
+    const MIN_SIZE_THRESHOLDS = {
+      all: 0,        // All games
+      card: 10,      // Card games & up (largest dimension >= 10cm)
+      small: 19,     // Small boxes & up (largest dimension >= 19cm)
+      medium: 25,    // Medium boxes & up (largest dimension >= 25cm)
+      standard: 29,  // Standard boxes & up (largest dimension >= 29cm)
+    };
+    const KALLAX_SIZES = {
+      '2x2': { rows: 2, cols: 2, cubes: 4 },
+      '2x4': { rows: 2, cols: 4, cubes: 8 },
+      '4x4': { rows: 4, cols: 4, cubes: 16 },
+      '5x5': { rows: 5, cols: 5, cubes: 25 },
+    };
+
+    const COMMON_SIZES = {
+      standard: { l: 29.5, w: 29.5, h: 7.5, label: 'Standard (Catan-size)' },
+      bigbox: { l: 29.5, w: 29.5, h: 12, label: 'Big Box' },
+      large: { l: 37, w: 27, h: 9, label: 'Large Box' },
+      ttr: { l: 36.5, w: 26.7, h: 8, label: 'Ticket to Ride size' },
+      medium: { l: 25, w: 25, h: 7, label: 'Medium Box' },
+      small: { l: 19.5, w: 19.5, h: 7, label: 'Small Box' },
+      card: { l: 13, w: 10, h: 4, label: 'Card Game' },
+    };
+
+    /* Well-known BGG IDs → exact dimensions [L, W, H] in cm
+       Sourced from publisher specs and community measurements */
+    const KNOWN_GAME_DIMS = {
+      // --- Huge / Oversize ---
+      174430: [41, 29.5, 17],   // Gloomhaven
+      233078: [43, 30, 13],     // Twilight Imperium (4th Ed.)
+      187645: [40, 30, 12],     // Star Wars: Rebellion
+      164928: [31, 31, 12],     // Orléans
+      291457: [30, 30, 12],     // Gloomhaven: Jaws of the Lion
+      // --- Large / TTR-size ---
+      169786: [36.5, 26.7, 9.5], // Scythe
+      9209: [36.5, 26.7, 8],   // Ticket to Ride
+      14996: [36.5, 26.7, 8],   // Ticket to Ride: Europe
+      220308: [35.6, 25.4, 8.5], // Gaia Project
+      12333: [36, 25, 6],       // Twilight Struggle
+      28720: [36, 25, 7],       // Brass: Lancashire
+      // --- Standard square ---
+      13: [29.5, 29.5, 7.5], // Catan
+      224517: [30, 30, 7.3],     // Brass: Birmingham
+      167791: [29.8, 29.8, 7.2], // Terraforming Mars
+      162886: [29.8, 29.8, 7.5], // Spirit Island
+      266192: [29.5, 24, 7],     // Wingspan
+      68448: [29.5, 29.5, 7.5], // 7 Wonders
+      342942: [29.6, 29.6, 7.3], // Ark Nova
+      316554: [29.5, 29.5, 7],   // Dune: Imperium
+      237182: [29.2, 29.2, 7.5], // Root
+      312484: [30, 30, 7.5],     // Lost Ruins of Arnak
+      193738: [29.5, 29.5, 7.5], // Great Western Trail
+      124361: [30, 30, 7.5],     // Concordia
+      126163: [29.5, 29.5, 7.5], // Tzolk'in
+      36218: [29.5, 29.5, 7.5], // Dominion
+      31260: [31, 22, 7.5],     // Agricola
+      199792: [26, 26, 8],       // Everdell
+      251247: [30, 30, 7],       // Barrage
+      182028: [30.5, 30.5, 7.5], // Through the Ages
+      230802: [25.7, 25.7, 7.6], // Azul
+      285967: [26.8, 19, 5.5],   // Cascadia
+      3076: [27, 19, 7],       // Puerto Rico
+      215: [29.5, 29.5, 7.5], // Tikal
+      // --- Medium ---
+      205637: [24, 17, 6],       // Arkham Horror: TCG
+      178900: [24, 16, 5],       // Codenames
+      173346: [21, 15.5, 5],     // 7 Wonders Duel
+      148228: [21, 21, 7.5],     // Splendor
+      204583: [21, 21, 5],       // Kingdomino
+      // --- Small / Card ---
+      24480: [13, 10, 4],       // The Crew
+      295947: [13, 10, 4],       // The Crew: Mission Deep Sea
+      // --- More popular games ---
+      822: [28, 19, 7],       // Carcassonne
+      2651: [30, 30, 7.5],     // Power Grid
+      120677: [29, 29, 7],       // Terra Mystica
+      159675: [30, 30, 7],       // Star Realms → actually small, but box variants
+      233867: [30, 30, 7],       // Clank! In! Space!
+      147949: [30, 30, 7],       // Star Wars: X-Wing
+      216132: [30, 30, 7],       // Clank!
+      161936: [30, 24, 7.5],     // Pandemic Legacy S1
+      172308: [30, 24, 7.5],     // Village
+      192135: [30, 30, 7],       // Too Many Bones
+      25613: [30, 30, 7],       // Through the Desert
+      39856: [30, 21, 7],       // Dixit
+      2653: [30, 30, 7.5],     // Citadels
+      128882: [30, 30, 7],       // The Resistance: Avalon
+      93: [30, 30, 7],       // El Grande
+      110327: [25, 25, 7],       // Lords of Waterdeep
+      25021: [30, 30, 7],       // Descent: Journeys
+      40834: [30, 30, 7.5],     // Dominion: Intrigue
+      463: [30, 21, 7],       // Magic: The Gathering
+      12: [23, 23, 6],       // Citadels (old)
+      3: [30, 30, 7],       // Cosmic Encounter
+      45: [25, 25, 7],       // Tigris & Euphrates
+      42: [30, 30, 7.5],     // Ra
+      118: [23, 23, 6],       // Modern Art
+      120: [30, 30, 7],       // Acquire
+      46: [25, 19, 7],       // Battle Line
+      50: [23, 23, 6],       // Lost Cities
+      521: [26, 18, 4],       // Cockroach Poker
+      478: [27, 19, 7],       // Citadels (new)
+      47: [25, 19, 7],       // Schotten Totten
+      337: [26, 18, 7],       // Bohnanza
+      483: [30, 30, 7.5],     // Diplomacy
+      903: [30, 30, 7],       // Pandemic
+      158600: [30, 24, 7.5],     // Pandemic Legacy S2
+      161417: [30, 30, 7],       // Blood Rage
+      170216: [29, 29, 7],       // Blood Rage (KS)
+      155426: [30, 30, 7],       // Istanbul
+      157354: [30, 30, 7.5],     // Five Tribes
+      172081: [20, 20, 7],       // Burgle Bros
+      40692: [30, 30, 7],       // Small World
+      103343: [30, 30, 7],       // Pandemic: In the Lab
+      102794: [30, 30, 7],       // Caverna
+      182134: [30, 30, 7],       // Inis
+      283863: [25, 25, 7],       // Canvas
+      39463: [29, 29, 7],       // Castles of Burgundy
+      34219: [30, 21, 7],       // Betrayal at House on the Hill
+      127023: [25, 25, 6],       // Dead of Winter
+      173090: [29, 29, 7],       // Champions of Midgard
+      217372: [30, 30, 7],       // Raiders of the North Sea
+      192291: [30, 30, 7],       // Paladins of the West Kingdom
+      256916: [30, 30, 7],       // Architects of the West Kingdom
+      244521: [30, 30, 7],       // The Quacks of Quedlinburg
+      198773: [30, 30, 7],       // Clans of Caledonia
+      191977: [30, 30, 7.5],     // Viticulture Essential Edition
+      263918: [30, 30, 7],       // Teotihuacan
+      300905: [30, 30, 7],       // Praga Caput Regni
+      329122: [25, 25, 7],       // Meadow
+      297530: [30, 30, 7],       // Great Western Trail 2nd Ed.
+      366013: [30, 30, 7.5],     // Arcs
+      302260: [30, 30, 7],       // Undaunted: Normandy
+      302723: [30, 30, 7],       // Undaunted: North Africa
+      267814: [30, 30, 7],       // Paladins
+      175199: [25, 25, 7],       // Imperial Settlers
+      181304: [25, 25, 7],       // Mysterium
+      194879: [25, 25, 7],       // Seasons
+      195314: [25, 25, 7],       // Skull
+      195421: [30, 30, 7],       // Mombasa
+      163412: [30, 30, 7.5],     // Patchwork
+      218161: [30, 30, 7],       // Tekhenu
+      228341: [30, 30, 7.5],     // Aeon's End
+      260627: [30, 30, 7],       // Sagrada
+      248861: [30, 30, 7],       // Kingsburg (2nd Ed.)
+      206718: [30, 30, 7],       // Unfathomable
+      244995: [20, 15, 5],       // Cockroach Poker Royal
+      280812: [20, 20, 7],       // Cartographers
+      194655: [30, 30, 7],       // Star Wars: Outer Rim
+      159143: [30, 30, 7],       // Suburbia
+      156097: [30, 30, 7],       // War of the Ring (2nd Ed.)
+      156009: [30, 30, 7.5],     // Werewords
+      131357: [25, 25, 7],       // Forbidden Desert
+      283155: [25, 25, 7],       // Forbidden Sky
+
+      // Real dimensions from user's BGG collection export (360 games)
+      // Converted from inches (×2.54) to centimeters
+      // 99.4% coverage of user's 362-game collection
+      3: [29.53, 29.53, 7.44], // Samurai
+      11: [22.0, 16.0, 3.2], // Bohnanza
+      12: [27.0, 22.0, 11.0], // Ra
+      42: [29.84, 29.84, 6.99], // Tigris & Euphrates
+      45: [15.0, 11.0, 11.0], // Perudo
+      46: [30.48, 22.1, 4.19], // Medici
+      47: [37.47, 27.43, 7.62], // Chinatown
+      50: [20.32, 20.32, 5.08], // Lost Cities
+      88: [29.5, 29.5, 7.0], // Torres
+      93: [37.5, 27.5, 7.2], // El Grande
+      118: [24.89, 24.89, 5.08], // Modern Art
+      120: [29.21, 20.32, 5.71], // Hoity Toity
+      172: [21.59, 15.88, 5.08], // For Sale
+      206: [19.7, 14.1, 4.4], // Jalape-NO!
+      215: [11.94, 9.4, 2.03], // Tichu
+      220: [13.0, 16.0, 2.2], // Le Grand Jeu
+      313: [26.67, 26.67, 6.35], // Big Boss
+      337: [11.0, 11.0, 5.0], // Circus Flohcati
+      354: [13.11, 10.01, 2.31], // Stick 'Em
+      372: [15.0, 10.0, 4.0], // Schotten Totten
+      432: [11.94, 9.4, 2.03], // Beat the Heat
+      433: [37.08, 27.18, 5.59], // Shark
+      475: [30.99, 22.0, 6.81], // Taj Mahal
+      478: [12.06, 12.06, 3.81], // Citadels
+      483: [26.67, 26.67, 5.71], // Diplomacy
+      503: [26.01, 19.99, 6.5], // Through the Desert
+      521: [68.58, 68.58, 3.81], // Crokinole
+      555: [29.72, 29.72, 7.11], // The Princes of Florence
+      836: [31.75, 22.86, 5.08], // New England Railways
+      903: [34.0, 34.0, 6.5], // Hamster Roll
+      1107: [15.24, 15.24, 3.81], // Nyet!
+      1345: [37.2, 27.2, 7.2], // Genoa
+      1403: [12.3, 9.7, 2.0], // Turn the Tide
+      2455: [29.21, 24.13, 5.08], // India Rails
+      2651: [37.34, 26.92, 5.59], // Power Grid
+      2653: [25.4, 50.8, 3.17], // Survive: Escape from Atlantis!
+      2955: [29.97, 29.97, 7.62], // Mexica
+      3076: [30.61, 21.72, 6.6], // Puerto Rico
+      3632: [15.0, 9.5, 3.0], // Foodie Forest
+      5767: [30.99, 22.0, 7.01], // Mammoth Hunters
+      5782: [11.94, 9.4, 2.03], // Coloretto
+      6830: [22.86, 22.86, 6.35], // Zendo
+      9342: [30.99, 22.0, 7.01], // Fifth Avenue
+      9674: [29.72, 29.72, 7.11], // Ingenious
+      11971: [11.0, 11.0, 3.0], // Cockroach Poker
+      12942: [12.0, 9.0, 2.0], // No Thanks!
+      12962: [31.75, 22.54, 6.99], // Reef Encounter
+      13004: [37.08, 27.18, 5.59], // The Downfall of Pompeii
+      13823: [15.24, 10.16, 2.54], // Fairy Tale
+      15512: [21.59, 15.88, 5.08], // Diamant
+      18602: [31.5, 22.5, 7.01], // Caylus
+      19948: [30.99, 22.0, 7.01], // Rum & Pirates
+      21882: [30.48, 30.48, 6.5], // Blue Moon City
+      21920: [31.5, 27.18, 5.59], // Leonardo da Vinci
+      23540: [31.2, 21.3, 7.3], // Shikoku 1889
+      24827: [22.35, 14.73, 3.81], // Traders of Osaka
+      25554: [30.99, 21.84, 6.6], // Notre Dame
+      27356: [31.5, 27.18, 5.59], // Portobello Market
+      27833: [29.46, 23.88, 7.87], // Steam
+      28086: [15.54, 15.54, 4.45], // Age of War
+      28143: [27.3, 19.05, 6.67], // Race for the Galaxy
+      31594: [31.5, 27.18, 5.59], // In the Year of the Dragon
+      32116: [25.15, 17.78, 9.65], // Airships
+      34219: [19.68, 13.97, 4.45], // Biblios
+      35285: [31.75, 24.13, 1.27], // Prussian Rails
+      35570: [31.7, 22.71, 5.3], // Tinners' Trail
+      36218: [29.72, 29.72, 7.11], // Dominion
+      37397: [37.08, 27.18, 5.59], // Power Grid: China/Korea
+      39242: [29.72, 29.72, 7.11], // Black Friday
+      39463: [29.8, 29.8, 7.0], // Cosmic Encounter
+      41114: [15.24, 10.16, 3.17], // The Resistance
+      42452: [25.4, 17.78, 5.08], // Rattus
+      43570: [13.08, 13.08, 4.06], // Friday
+      46213: [25.4, 25.4, 7.62], // Telestrations
+      54043: [18.03, 12.95, 4.06], // Jaipur
+      54137: [27.18, 27.18, 6.35], // Battle Sheep
+      55670: [30.96, 21.91, 6.83], // Macao
+      56692: [12.2, 9.5, 2.5], // Parade
+      63888: [15.88, 12.06, 7.62], // Innovation
+      65244: [22.2, 16.5, 7.0], // Forbidden Island
+      70323: [25.4, 25.4, 6.99], // King of Tokyo
+      70919: [33.53, 22.86, 7.62], // Takenoko
+      72321: [33.02, 22.86, 5.08], // The Networks: Primetime
+      75358: [29.72, 29.72, 9.65], // Paris Connection
+      84876: [30.99, 21.91, 6.67], // The Castles of Burgundy
+      87890: [26.16, 26.16, 8.64], // Prêt-à-Porter
+      91514: [18.0, 11.5, 4.0], // Rhino Hero
+      91984: [36.83, 28.57, 6.99], // Québec
+      96913: [29.7, 29.7, 8.3], // Lancaster
+      98229: [29.97, 29.97, 7.62], // Pictomania
+      98778: [9.5, 9.5, 3.0], // Hanabi
+      104955: [22.86, 31.24, 5.59], // Antike Duellum
+      106645: [29.72, 29.72, 7.11], // Ticket to Ride Map Collection 2: India & Switzerland
+      113289: [10.16, 10.16, 9.91], // Snake Oil
+      118048: [20.0, 20.0, 4.5], // Targi
+      122515: [22.71, 31.6, 7.19], // Keyflower
+      123260: [29.72, 29.72, 7.62], // Suburbia
+      123570: [28.0, 19.0, 6.0], // Strike
+      124361: [28.7, 40.13, 5.59], // Concordia
+      125153: [39.37, 31.75, 8.89], // The Gallerist
+      125618: [29.49, 29.49, 7.19], // Libertalia
+      126163: [29.72, 29.72, 7.11], // Tzolk'in: The Mayan Calendar
+      127023: [39.5, 27.5, 8.0], // Kemet
+      127060: [30.9, 22.0, 6.7], // Bora Bora
+      128882: [19.8, 14.9, 4.7], // The Resistance: Avalon
+      129090: [21.59, 16.26, 5.08], // Roll For It!
+      129622: [19.05, 11.94, 3.3], // Love Letter
+      131357: [22.54, 17.46, 7.3], // Coup
+      133473: [15.24, 10.16, 5.08], // Sushi Go!
+      135779: [6.5, 11.0, 3.5], // A Fake Artist Goes to New York
+      136888: [31.5, 22.5, 7.0], // Bruges
+      137155: [15.5, 10.8, 4.1], // Potato Man
+      138338: [31.5, 22.5, 5.0], // Continental Divide
+      140934: [20.32, 15.24, 5.08], // Arboretum
+      142325: [11.2, 6.6, 1.9], // Kobayakawa
+      143405: [16.0, 16.0, 4.6], // Sylvion
+      146735: [23.29, 15.7, 4.5], // Munchkin Adventure Time
+      147020: [7.11, 9.91, 4.83], // Star Realms
+      147768: [11.94, 9.4, 2.03], // Five Cucumbers
+      147949: [17.14, 12.7, 3.81], // One Night Ultimate Werewolf
+      148228: [21.5, 27.5, 6.5], // Splendor
+      148949: [22.48, 31.75, 7.62], // Istanbul
+      152166: [27.2, 22.71, 3.17], // Steam: Map Expansion #4
+      152757: [26.67, 26.67, 6.35], // Doodle Quest
+      153938: [29.7, 29.7, 7.0], // Camel Up
+      154086: [30.23, 22.61, 7.11], // Gold West
+      155969: [15.24, 10.16, 3.81], // Harbour
+      156009: [23.5, 16.0, 3.2], // Port Royal
+      156097: [26.42, 22.1, 6.35], // Snake Oil: Elixir
+      156373: [16.3, 11.7, 3.5], // Chimera
+      157354: [29.6, 29.6, 7.2], // Five Tribes: The Djinns of Naqala
+      158600: [11.0, 16.5, 3.0], // Hanamikoji
+      158915: [7.62, 2.54, 1.27], // GEM
+      158916: [7.62, 2.54, 1.27], // TAJ
+      159143: [7.9, 2.7, 1.4], // HUE
+      159581: [11.0, 6.5, 4.0], // Maskmen
+      161417: [15.0, 10.5, 2.6], // Red7
+      161936: [37.15, 26.99, 7.62], // Pandemic Legacy: Season 1
+      163166: [23.37, 17.53, 6.86], // One Night Ultimate Werewolf: Daybreak
+      163412: [19.48, 19.48, 4.5], // Patchwork
+      164840: [8.89, 5.84, 2.1], // Monopoly Deal
+      164928: [31.7, 22.61, 7.29], // Orléans
+      165556: [29.7, 29.7, 7.1], // Orongo
+      165948: [29.5, 29.5, 7.4], // Mangrovia
+      165986: [29.84, 29.84, 6.99], // Royals
+      166226: [31.5, 22.61, 5.59], // The Staufer Dynasty
+      166384: [20.32, 20.32, 4.83], // Spyfall
+      168435: [25.4, 25.4, 7.62], // Between Two Cities
+      169654: [11.0, 6.0, 3.5], // Deep Sea Adventure
+      171499: [27.5, 19.0, 6.7], // Cacao
+      171623: [31.5, 22.5, 9.0], // The Voyages of Marco Polo
+      172308: [30.9, 22.0, 6.7], // Broom Service
+      172881: [27.5, 19.0, 6.9], // Quartz
+      173090: [11.94, 9.4, 2.03], // The Game
+      174095: [28.4, 14.1, 3.99], // Takenoko: Chibis
+      175199: [20.96, 13.34, 3.81], // Mottainai
+      176494: [27.4, 19.0, 6.8], // Isle of Skye: From Chieftain to King
+      178900: [23.01, 16.0, 4.14], // Codenames
+      180205: [31.75, 24.13, 1.27], // Trans-Siberian Railroad
+      180511: [29.53, 29.53, 6.67], // Shakespeare
+      180956: [17.53, 13.46, 4.32], // One Night Ultimate Vampire
+      181084: [39.7, 28.2, 5.3], // Concordia: Salsa
+      181304: [27.94, 27.94, 9.53], // Mysterium
+      181345: [38.5, 22.0, 10.0], // Dr. Eureka
+      182134: [29.7, 29.6, 9.3], // Evolution: Climate
+      182631: [9.53, 6.86, 4.45], // Star Realms: Colony Wars
+      182874: [31.5, 22.61, 5.59], // Grand Austria Hotel
+      183394: [27.0, 22.0, 10.5], // Viticulture Essential Edition
+      183840: [11.94, 9.4, 2.03], // Oh My Goods!
+      186659: [17.9, 12.0, 4.0], // Tiny Epic Galaxies: Deluxe Edition
+      191231: [29.97, 29.97, 6.99], // Via Nebula
+      191597: [18.21, 12.4, 2.49], // Dale of Merchants 2
+      191862: [29.72, 29.72, 7.11], // Imhotep
+      191977: [18.2, 11.4, 9.14], // The Castles of Burgundy: The Card Game
+      192735: [18.1, 11.4, 3.6], // Broom Service: The Card Game
+      193213: [18.1, 13.0, 3.9], // Millions of Dollars
+      193738: [29.5, 29.5, 7.5], // Great Western Trail
+      193831: [11.94, 8.0, 4.06], // ColorFox
+      194233: [31.12, 20.32, 7.62], // Cartoon Network Crossover Crisis Deck-Building Game
+      194594: [28.57, 28.57, 7.62], // Dice Forge
+      194655: [29.92, 29.92, 6.35], // Santorini
+      194879: [20.0, 14.5, 4.2], // Not Alone
+      195314: [19.3, 13.5, 4.1], // Herbaceous
+      195421: [29.72, 29.72, 7.11], // Near and Far
+      198773: [23.0, 16.0, 5.0], // Codenames: Pictures
+      198994: [15.24, 10.16, 4.7], // Hero Realms
+      200077: [9.0, 6.0, 2.0], // Mint Works
+      202100: [15.24, 10.16, 4.45], // Hero Realms: The Ruin of Thandar Campaign Deck
+      202174: [31.5, 22.61, 5.59], // Viticulture: Tuscany Essential Edition
+      204431: [17.78, 12.7, 3.81], // One Night Ultimate Alien
+      204583: [19.99, 19.99, 5.0], // Kingdomino
+      204814: [30.2, 21.2, 1.8], // Orléans: Trade & Intrigue
+      206718: [30.8, 30.8, 6.3], // Ethnos
+      207336: [18.0, 13.0, 4.0], // Honshū
+      208364: [38.5, 27.0, 1.0], // Concordia: Gallia / Corsica
+      209685: [27.43, 18.92, 6.73], // Century: Spice Road
+      212404: [8.89, 6.35, 0.51], // In Vino Morte
+      212765: [12.3, 8.9, 3.3], // Songbirds
+      213492: [19.68, 13.97, 3.81], // Pyramids
+      215311: [29.46, 29.46, 4.06], // Downforce
+      215471: [12.0, 9.5, 3.0], // Photograph
+      217372: [29.5, 29.5, 7.0], // The Quest for El Dorado
+      218161: [16.9, 12.6, 5.3], // Pit Crew
+      219513: [27.3, 18.41, 6.35], // Bärenpark
+      220778: [16.0, 23.0, 5.0], // Sticky Chameleons
+      220988: [11.0, 11.0, 3.0], // Criss Cross
+      221965: [16.0, 11.18, 3.05], // The Fox in the Forest
+      223040: [15.49, 12.7, 4.32], // Fantasy Realms
+      223770: [11.0, 6.5, 3.7], // Startups
+      224037: [32.0, 23.01, 7.01], // Codenames: Duet
+      224517: [30.0, 30.0, 5.0], // Brass: Birmingham
+      225163: [29.72, 29.72, 7.11], // Reworld
+      226518: [13.0, 18.0, 4.0], // EXIT: The Game – The Sunken Treasure
+      227224: [22.86, 17.78, 5.08], // The Red Cathedral
+      227758: [20.0, 15.0, 4.5], // Kokoro: Avenue of the Kodama
+      228341: [29.7, 29.7, 7.1], // Pulsar 2849
+      228371: [31.75, 22.86, 4.45], // Iberian Railways
+      230251: [9.0, 6.0, 2.0], // Mint Delivery
+      230802: [19.99, 14.99, 4.98], // Azul
+      232303: [19.81, 19.81, 5.08], // Amun-Re: The Card Game
+      233262: [31.75, 31.75, 10.16], // Tidal Blades: Heroes of the Reef
+      233867: [20.0, 20.0, 4.0], // Welcome To...
+      233973: [26.5, 26.5, 7.0], // Huns
+      234477: [29.53, 29.53, 7.3], // Battle for Rokugan
+      237182: [29.0, 22.5, 7.3], // Root
+      241266: [20.5, 20.5, 6.0], // Little Town
+      244114: [29.5, 29.5, 6.8], // Yellow & Yangtze
+      244115: [19.5, 14.5, 4.5], // Shards of Infinity
+      244331: [26.5, 26.5, 6.0], // Blue Lagoon
+      244522: [17.93, 12.95, 4.14], // That's Pretty Clever!
+      244992: [10.0, 13.3, 2.0], // The Mind
+      244995: [13.2, 10.1, 2.3], // Illusion
+      245422: [12.7, 17.78, 3.81], // Werewords Deluxe Edition
+      245654: [15.2, 15.0, 4.0], // Railroad Ink: Deep Blue Edition
+      245934: [31.0, 22.0, 6.7], // Carpe Diem
+      246684: [29.84, 29.84, 9.53], // Smartphone Inc.
+      248861: [20.32, 16.51, 5.02], // Metro X
+      249381: [26.0, 26.0, 7.0], // The Estates
+      250621: [23.3, 16.2, 5.3], // 18Lilliput
+      252752: [22.0, 29.0, 8.5], // Genotype: A Mendelian Genetics Game
+      253284: [20.0, 20.0, 4.7], // Ticket to Ride: New York
+      253398: [18.0, 13.2, 4.0], // Lost Cities: Rivals
+      254386: [30.48, 22.86, 7.94], // Raccoon Tycoon
+      254640: [23.01, 16.0, 5.0], // Just One
+      256382: [26.6, 26.6, 6.4], // Disney Villainous: The Worst Takes it All
+      256801: [13.0, 13.0, 3.99], // Fast Forward: FORTUNE
+      257273: [15.2, 10.2, 6.6], // Ghosts of the Moor
+      257769: [16.0, 11.0, 3.0], // Walking in Burano
+      257836: [12.17, 10.06, 1.91], // Narabi
+      258003: [14.1, 28.4, 7.6], // Dice Forge: Rebellion
+      260180: [21.59, 21.59, 8.89], // Project L
+      260428: [30.48, 22.56, 4.45], // Fall of Rome
+      260678: [31.5, 22.5, 9.02], // Stone Age: Anniversary
+      260927: [29.72, 29.72, 7.11], // Mississippi Queen
+      261114: [29.7, 29.7, 7.3], // Men at Work
+      262543: [27.0, 27.0, 7.62], // Wavelength
+      262547: [14.0, 15.0, 14.0], // Don't Get Got!
+      263918: [17.78, 12.7, 3.81], // Cartographers
+      264239: [17.91, 12.9, 3.81], // Patchwork Doodle
+      265256: [11.43, 6.6, 4.06], // PUSH
+      265683: [17.7, 12.7, 3.7], // Second Chance
+      266083: [11.94, 9.4, 2.03], // L.L.A.M.A.
+      266830: [27.4, 17.3, 5.1], // QE
+      267475: [23.0, 16.0, 5.0], // Stay Cool
+      267813: [18.0, 13.0, 4.0], // Adventure Games: The Dungeon
+      268620: [12.5, 9.5, 2.5], // Similo
+      270109: [30.0, 30.0, 6.0], // Iwari
+      270673: [17.5, 11.5, 2.3], // Silver & Gold
+      274960: [19.5, 14.5, 4.5], // Point Salad
+      275467: [23.01, 16.0, 5.08], // Letter Jam
+      277927: [27.41, 17.3, 5.11], // Bites
+      278120: [25.0, 25.0, 8.0], // God of War: The Card Game
+      280812: [29.0, 29.0, 7.5], // Neta-Tanka
+      281619: [11.94, 11.94, 5.08], // Ghosts of Christmas
+      281960: [18.2, 11.2, 4.2], // Kingdomino Duel
+      282524: [26.67, 26.67, 6.35], // Horrified
+      282954: [29.5, 29.5, 7.0], // Paris
+      283155: [23.9, 23.9, 7.1], // Calico
+      283355: [26.67, 26.67, 6.73], // Dune
+      283863: [29.72, 29.72, 7.11], // The Magnificent
+      284083: [17.7, 12.7, 3.8], // The Crew: The Quest for Planet Nine
+      284435: [25.0, 25.0, 6.0], // Nova Luna
+      286667: [24.38, 19.68, 6.48], // Tutankhamun
+      286749: [31.5, 22.5, 7.0], // Hansa Teutonica: Big Box
+      288169: [16.0, 11.2, 3.0], // The Fox in the Forest Duet
+      291453: [11.1, 6.6, 3.7], // SCOUT
+      291457: [29.21, 22.86, 10.16], // Gloomhaven: Jaws of the Lion
+      293014: [25.0, 25.0, 7.8], // Nidavellir
+      294345: [26.0, 26.0, 2.7], // Azul: Crystal Mosaic
+      296100: [38.99, 31.75, 7.62], // Rococo: Deluxe Edition
+      297486: [31.4, 22.4, 3.95], // Ride the Rails
+      298060: [19.5, 14.5, 4.5], // Truffle Shuffle
+      298378: [36.5, 25.5, 7.0], // Maharaja
+      298619: [12.0, 8.0, 5.0], // 15 Days
+      299027: [14.0, 14.0, 4.0], // Colt Super Express
+      299946: [12.0, 8.0, 5.0], // Eiyo
+      300001: [29.5, 29.5, 7.0], // Renature
+      300099: [18.0, 11.0, 4.0], // Animix
+      300305: [21.0, 14.0, 4.0], // Nanga Parbat
+      301085: [12.0, 8.0, 5.0], // Rebis
+      301919: [23.11, 14.73, 5.08], // Pandemic: Hot Zone – North America
+      302270: [20.32, 16.51, 5.08], // Marshmallow Test
+      302520: [25.4, 25.4, 6.35], // Hues and Cues
+      303057: [26.67, 26.67, 6.35], // Pan Am
+      303733: [12.0, 8.0, 5.0], // Space Lunch
+      303734: [12.0, 8.0, 5.0], // Golems
+      304420: [31.7, 22.6, 7.3], // Bonfire
+      306182: [13.97, 10.16, 2.54], // Bandada
+      306864: [29.72, 29.72, 3.81], // Smartphone Inc.: Update 1.1
+      307002: [9.3, 6.5, 2.21], // Regicide
+      311031: [13.97, 6.99, 5.08], // Five Three Five
+      312484: [37.0, 25.5, 7.5], // Lost Ruins of Arnak
+      315631: [29.72, 29.72, 7.11], // Santorini: New York
+      316337: [30.0, 22.0, 4.0], // The Magnificent: SNØ
+      323156: [29.5, 29.5, 7.2], // Stroganov
+      323255: [26.67, 26.67, 7.94], // Box One
+      324856: [17.7, 12.7, 3.81], // The Crew: Mission Deep Sea
+      324914: [18.0, 13.0, 4.0], // Inside Job
+      327778: [13.5, 9.5, 2.5], // ito
+      329873: [10.16, 7.62, 2.54], // Grove: 9 card solitaire game
+      330608: [30.48, 22.23, 6.99], // Cryo
+      332393: [13.97, 13.97, 5.08], // Bridge City Poker
+      332944: [20.0, 20.0, 4.5], // Sobek: 2 Players
+      333055: [12.5, 17.5, 4.0], // Subastral
+      335609: [14.4, 19.2, 4.5], // TEN
+      339214: [21.27, 14.92, 5.4], // Fruit Fight
+      339924: [15.7, 16.0, 5.0], // Hot Lead
+      340041: [26.4, 19.8, 6.0], // Kingdomino Origins
+      341573: [18.0, 13.0, 4.0], // EXIT: The Game – The Lord of the Rings: Shadows over Middle-earth
+      342942: [37.01, 30.0, 7.01], // Ark Nova
+      344638: [30.48, 27.94, 5.08], // Risk: Deep Space
+      345584: [17.8, 12.8, 4.0], // Mindbug: First Contact
+      347146: [12.7, 8.89, 2.54], // St Patrick
+      347805: [23.0, 16.0, 5.0], // Green Team Wins
+      352574: [24.13, 24.13, 7.62], // Fit to Print
+      353288: [30.48, 30.48, 6.35], // Trekking Through History
+      353545: [18.0, 11.0, 4.0], // Next Station: London
+      355093: [29.72, 29.72, 7.11], // Woodcraft
+      355473: [19.05, 5.41, 3.3], // 3 Second Try
+      356123: [25.0, 25.0, 6.0], // Turing Machine
+      357956: [26.5, 26.5, 5.7], // The Wizard of Oz Adventure Book Game
+      359878: [15.0, 10.5, 3.4], // Splito
+      363481: [12.1, 9.4, 2.8], // Fancy Feathers
+      368061: [31.7, 22.7, 6.5], // Zoo Vadis
+      371947: [23.1, 23.1, 6.8], // 3 Ring Circus
+      375651: [12.9, 10.2, 3.4], // That's Not a Hat
+      378979: [22.3, 31.4, 7.0], // Nusfjord: Big Box
+      383450: [12.0, 12.0, 5.0], // Pies
+      387378: [27.5, 27.5, 7.0], // MLEM: Space Agency
+      390094: [11.94, 9.4, 2.03], // FTW?!
+      402283: [20.0, 10.0, 5.0], // Courtisans
+      402663: [22.86, 18.03, 6.35], // Salton Sea
+      405537: [11.5, 6.5, 4.0], // DroPolter
+      408547: [12.7, 12.7, 5.08], // Things in Rings
+      412381: [10.16, 13.97, 2.54], // Sandbag
+      413364: [12.0, 9.5, 3.0], // Bottle Imp
+      417518: [22.86, 22.86, 5.08], // Floristry
+      420017: [14.0, 10.0, 3.0], // Rebel Princess: 2nd Edition
+      420087: [11.9, 9.2, 2.23], // Flip 7
+      429608: [14.9, 10.6, 3.1], // Mü & more: Revised Edition
+    };
+
+    /* ═══════════════════════════════════════════════════
+       STATE
+       ═══════════════════════════════════════════════════ */
+    let games = [];
+    let excludedGameIds = new Set();  // Track games excluded from shelf planning
+    let sizeOverrides = {};  // Track manual size category overrides: { gameId: 'card'|'small'|'medium'|'standard' }
+    let sortCol = 'name';
+    let sortAsc = true;
+
+    /* ═══════════════════════════════════════════════════
+       DOM REFERENCES
+       ═══════════════════════════════════════════════════ */
+    const $ = (id) => document.getElementById(id);
+    const bggUsername = $('bggUsername');
+    const fetchBtn = $('fetchBtn');
+    const openCollectionBtn = $('openCollectionBtn');
+    const resumeBtn = $('resumeBtn');
+    const demoBtn = $('demoBtn');
+    const csvUpload = $('csvUpload');
+    const errorMsg = $('errorMsg');
+
+    if (fetchBtn) {
+      fetchBtn.addEventListener('click', () => {
+        const username = bggUsername.value.trim();
+        if (!username) {
+          showError('Please enter a BGG username');
+          return;
+        }
+        doFetch(username);
+      });
+    }
+    const progressArea = $('progressArea');
+    const progressFill = $('progressFill');
+    const progressStatus = $('progressStatus');
+    const resultsArea = $('resultsArea');
+    const kallaxSizeSelect = $('kallaxSize');
+    const orientationSelect = $('orientation');
+    const minSizeSelect = $('minSize');
+    const cacheStatusEl = $('cacheStatus');
+
+    /* ═══════════════════════════════════════════════════
+       LOCALSTORAGE CACHE
+       ═══════════════════════════════════════════════════ */
+    const CACHE_KEY = 'kallax_cache';
+
+    function saveCache(username, gameList) {
+      const data = {
+        username, ts: Date.now(), games: gameList.map(g => ({
+          id: g.id, name: g.name, dims: g.dims, source: g.source,
+        }))
+      };
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (e) { console.warn('Cache save failed:', e); }
+    }
+
+    function loadCache() {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        // Validate cache structure
+        if (!data.username || !Array.isArray(data.games) || data.games.length === 0) return null;
+        // Validate games have required fields
+        for (const game of data.games) {
+          if (!game.id || !game.name) return null;
+        }
+        return data;
+      } catch (e) {
+        console.warn('Cache corrupted, clearing:', e);
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+      }
+    }
+
+    function loadSizeOverrides() {
+      try {
+        const raw = localStorage.getItem('bgsize_sizeOverrides');
+        sizeOverrides = raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        console.warn('Size overrides corrupted:', e);
+        sizeOverrides = {};
+      }
+    }
+
+    function saveSizeOverrides() {
+      try {
+        localStorage.setItem('bgsize_sizeOverrides', JSON.stringify(sizeOverrides));
+      } catch (e) {
+        console.warn('Could not save size overrides:', e);
+      }
+    }
+
+    let shelfMode = 'basic'; // 'basic' | 'advanced'
+    let customShelves = []; // array of e.g. '2x4', '5x5'
+
+    function loadCustomShelves() {
+      try {
+        const rawMode = localStorage.getItem('bgsize_shelfMode');
+        if (rawMode) shelfMode = rawMode;
+
+        const rawList = localStorage.getItem('bgsize_customShelves');
+        customShelves = rawList ? JSON.parse(rawList) : [];
+      } catch (e) {
+        console.warn('Custom shelves corrupted:', e);
+        shelfMode = 'basic';
+        customShelves = [];
+      }
+      setShelfMode(shelfMode, false);
+      renderCustomShelves();
+    }
+
+    function saveCustomShelves() {
+      try {
+        localStorage.setItem('bgsize_shelfMode', shelfMode);
+        localStorage.setItem('bgsize_customShelves', JSON.stringify(customShelves));
+      } catch (e) {
+        console.warn('Could not save custom shelves:', e);
+      }
+    }
+
+    function setShelfMode(mode, triggerRender = true) {
+      shelfMode = mode;
+
+      const btnBasic = $('btnModeBasic');
+      const btnAdv = $('btnModeAdv');
+      const basicPanel = $('basicShelfSelect');
+      const advPanel = $('advShelfSelect');
+
+      if (mode === 'basic') {
+        btnBasic.classList.replace('btn-secondary', 'btn-primary');
+        btnAdv.classList.replace('btn-primary', 'btn-secondary');
+        basicPanel.style.display = 'block';
+        advPanel.style.display = 'none';
+      } else {
+        btnAdv.classList.replace('btn-secondary', 'btn-primary');
+        btnBasic.classList.replace('btn-primary', 'btn-secondary');
+        advPanel.style.display = 'block';
+        basicPanel.style.display = 'none';
+      }
+
+      saveCustomShelves();
+      if (triggerRender && games.length) {
+        // Debounce render if required, but forcing synchronous here is fine
+        render();
+      }
+    }
+
+    function addCustomShelf() {
+      const select = $('addShelfSize');
+      customShelves.push(select.value);
+      saveCustomShelves();
+      renderCustomShelves();
+      if (games.length) render();
+    }
+
+    function removeCustomShelf(index) {
+      customShelves.splice(index, 1);
+      saveCustomShelves();
+      renderCustomShelves();
+      if (games.length) render();
+    }
+
+    function renderCustomShelves() {
+      const listEl = $('myShelvesList');
+      if (customShelves.length === 0) {
+        listEl.innerHTML = `<div style="font-size:0.8rem;color:var(--text-secondary);text-align:center;padding:0.5rem">No shelves added yet.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = customShelves.map((shelf, idx) => {
+        const parts = shelf.split('x').map(Number);
+        const cubes = parts[0] * parts[1];
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-card);padding:0.25rem 0.5rem;border-radius:4px;border:1px solid var(--border)">
+             <div style="font-size:0.85rem"><strong>${shelf.replace('x', '×')}</strong> <span style="color:var(--text-secondary)">(${cubes} cubes)</span></div>
+             <button onclick="removeCustomShelf(${idx})" class="btn" style="background:transparent;color:var(--red,#ef4444);padding:0;border:none;cursor:pointer" title="Remove shelf">✕</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    loadSizeOverrides();
+    loadCustomShelves();
+
+    function clearCache() {
+      localStorage.removeItem(CACHE_KEY);
+      updateCacheStatus();
+    }
+
+    function exportMissingDimensions() {
+      if (!games || games.length === 0) {
+        alert('No games loaded. Load a collection first.');
+        return;
+      }
+
+      const missing = games.filter(g => g.source === 'common');
+      if (missing.length === 0) {
+        alert('All games have dimensions! No exports needed.');
+        return;
+      }
+
+      // Create CSV with missing games
+      let csv = 'Game ID,Game Name,Status\n';
+      missing.forEach(g => {
+        csv += `${g.id},"${g.name.replace(/"/g, '""')}",needs_dimensions\n`;
+      });
+
+      // Download
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `missing_dimensions_${Date.now()}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      console.log(`📥 Exported ${missing.length} games needing dimensions`);
+    }
+
+    function exportFullCollection() {
+      if (!games || games.length === 0) {
+        alert('No games loaded. Load a collection first.');
+        return;
+      }
+
+      // Create CSV with all games and their dimensions
+      let csv = 'Game ID,Game Name,Length (cm),Width (cm),Height (cm),Dimension Source\n';
+      games.forEach(g => {
+        const sourceLabel = g.source === 'bgg' ? 'BGG API' :
+          g.source === 'known' ? 'Known Database' :
+            'Common Fallback';
+        csv += `${g.id},"${g.name.replace(/"/g, '""')}",${g.length},${g.width},${g.height},"${sourceLabel}"\n`;
+      });
+
+      // Download
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `collection_with_dimensions_${Date.now()}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      console.log(`📥 Exported ${games.length} games with dimensions`);
+    }
+
+    function updateCacheStatus() {
+      const cache = loadCache();
+      if (cache && cache.games && cache.games.length > 0) {
+        const total = cache.games.length;
+        const withBgg = cache.games.filter(g => g.source === 'bgg').length;
+        const withKnown = cache.games.filter(g => g.source === 'known').length;
+        const withFallback = total - withBgg - withKnown;
+        const age = Math.round((Date.now() - cache.ts) / 60000);
+        const ageStr = age < 60 ? `${age}m ago` : `${Math.round(age / 60)}h ago`;
+
+        let statusHTML = `📦 Cached: <strong>${total} games</strong> for <strong>${cache.username}</strong> (${ageStr}) — ${withBgg} BGG, ${withKnown} known, ${withFallback} fallback. <a href="#" id="clearCacheLink" style="color:var(--accent)">Clear cache</a>`;
+
+        // Add export buttons
+        if (withFallback > 0) {
+          statusHTML += ` | <a href="#" id="exportMissingLink" style="color:var(--teal); font-weight:bold">📥 Export Missing (${withFallback})</a>`;
+        }
+        statusHTML += ` | <a href="#" id="exportFullLink" style="color:var(--teal); font-weight:bold">📋 Export All with Dims</a>`;
+
+        cacheStatusEl.innerHTML = statusHTML;
+        cacheStatusEl.style.display = 'block';
+        if (resumeBtn) resumeBtn.style.display = 'inline-flex';
+
+        setTimeout(() => {
+          const link = $('clearCacheLink');
+          if (link) link.addEventListener('click', (e) => { e.preventDefault(); clearCache(); });
+
+          const exportLink = $('exportMissingLink');
+          if (exportLink) exportLink.addEventListener('click', (e) => { e.preventDefault(); exportMissingDimensions(); });
+
+          const exportFullLink = $('exportFullLink');
+          if (exportFullLink) exportFullLink.addEventListener('click', (e) => { e.preventDefault(); exportFullCollection(); });
+        });
+      } else {
+        cacheStatusEl.style.display = 'none';
+        if (resumeBtn) resumeBtn.style.display = 'none';
+      }
+    }
+
+    updateCacheStatus();
+
+    /* ═══════════════════════════════════════════════════
+       PROGRESS HELPERS
+       ═══════════════════════════════════════════════════ */
+    function showProgress(pct, msg) {
+      progressArea.classList.add('visible');
+      progressFill.style.width = pct + '%';
+      progressStatus.textContent = msg;
+    }
+    function hideProgress() {
+      progressArea.classList.remove('visible');
+    }
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.remove('hidden');
+    }
+    function hideError() {
+      errorMsg.classList.add('hidden');
+    }
+
+    /* ═══════════════════════════════════════════════════
+       NETWORKING — LOCAL PROXY OR CORS PROXY FALLBACK
+       ═══════════════════════════════════════════════════ */
+    const USE_LOCAL_PROXY = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const BGG_BASE = 'https://boardgamegeek.com';
+
+    // External CORS proxies (fallback when not using server.py)
+    const CORS_PROXIES = [
+      (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    ];
+    let activeProxyIndex = 0;
+
+    function bggUrl(path) {
+      // When local proxy is available, route through /bggproxy/
+      if (USE_LOCAL_PROXY) return `/bggproxy/${path}`;
+      return `${BGG_BASE}/${path}`;
+    }
+
+    async function bggFetch(path, options = {}) {
+      if (USE_LOCAL_PROXY) {
+        // Local proxy handles everything — simple fetch
+        console.log(`[Local Proxy] GET /bggproxy/${path}`);
+        return fetch(`/bggproxy/${path}`, options);
+      }
+
+      // Otherwise try external CORS proxies
+      const fullUrl = `${BGG_BASE}/${path}`;
+      console.log(`[CORS Proxy] Trying to fetch: ${path}`);
+
+      for (let i = 0; i < CORS_PROXIES.length; i++) {
+        const idx = (activeProxyIndex + i) % CORS_PROXIES.length;
+        const proxiedUrl = CORS_PROXIES[idx](fullUrl);
+        try {
+          console.log(`[CORS Proxy ${idx}] ${proxiedUrl.substring(0, 80)}...`);
+          const resp = await fetch(proxiedUrl, { mode: 'cors' });
+          if (resp.ok) {
+            console.log(`[CORS Proxy ${idx}] Success (${resp.status})`);
+            activeProxyIndex = idx;
+            return resp;
+          }
+          console.warn(`[CORS Proxy ${idx}] HTTP ${resp.status}`);
+        } catch (e) {
+          console.warn(`[CORS Proxy ${idx}] Failed: ${e.message}`);
+        }
+      }
+      // Last resort: direct fetch
+      console.log('[Fallback] Direct fetch (may fail due to CORS)');
+      return fetch(fullUrl);
+    }
+
+    /* ═══════════════════════════════════════════════════
+       BGG API
+       ═══════════════════════════════════════════════════ */
+    async function fetchCollection(username) {
+      // Validate username format
+      if (!username || username.trim().length === 0) {
+        throw new Error('Username cannot be empty');
+      }
+
+      // When running via local server, use our scraper
+      if (USE_LOCAL_PROXY) {
+        const resp = await fetch(`/api/collection?username=${encodeURIComponent(username)}`);
+        if (!resp.ok) {
+          const data = await resp.json().catch(() => ({}));
+          throw new Error(data.error || `Server error: ${resp.status}`);
+        }
+        const data = await resp.json();
+        return data.games || [];
+      }
+
+      // Fallback/Legacy (if not on localhost)
+      throw new Error("Automatic collection fetch requires running the app via server.py.");
+    }
+
+    function parseCollectionXml(xml) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'text/xml');
+
+      // Check for parse error
+      if (doc.documentElement.nodeName === 'parsererror') {
+        console.error('XML Parse Error:', doc.documentElement.textContent);
+        return [];
+      }
+
+      // Check for BGG error message
+      const msgEl = doc.querySelector('message');
+      if (msgEl) {
+        const msg = msgEl.textContent;
+        if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('not found')) {
+          throw new Error(msg);
+        }
+      }
+
+      const items = doc.querySelectorAll('item');
+      if (items.length === 0) {
+        console.warn('No items found in XML response');
+        return [];
+      }
+
+      const result = [];
+      items.forEach((item) => {
+        const id = parseInt(item.getAttribute('objectid'), 10);
+        const name = item.querySelector('name')?.textContent || 'Unknown';
+        if (id && name) {
+          result.push({ id, name, dims: null, source: null });
+        }
+      });
+      return result;
+    }
+
+    async function fetchDimensions(gameList, forceRefetch = false) {
+      // When running via local server (localhost), fetch dimensions via /api/dims
+      // The server handles BGG auth (JWT Bearer token) and disk caching.
+      if (!USE_LOCAL_PROXY) {
+        console.log(`ℹ️ Not on localhost — skipping server dimension fetch`);
+        return;
+      }
+
+      // Only fetch for games that don't already have bgg-sourced dims, unless forced
+      const needDims = forceRefetch ? gameList : gameList.filter(g => !g.dims || g.source !== 'bgg');
+      if (needDims.length === 0) {
+        console.log(`✓ All games already have BGG dimensions`);
+        return;
+      }
+
+      const ids = needDims.map(g => g.id).join(',');
+      const forceParam = forceRefetch ? '&force=1' : '';
+      console.log(`🔍 Fetching dimensions for ${needDims.length} games via local server...`);
+
+      try {
+        const resp = await fetch(`/api/dims?ids=${ids}${forceParam}`);
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          console.warn(`⚠️ /api/dims returned ${resp.status}: ${err.error || ''}`);
+          return;
+        }
+        const data = await resp.json();
+        const dimsMap = data.dims || {};
+        let applied = 0;
+        for (const game of needDims) {
+          const d = dimsMap[String(game.id)];
+          if (d && d.l > 0 && d.w > 0 && d.h > 0) {
+            game.dims = { l: d.l, w: d.w, h: d.h };
+            game.source = 'bgg';
+            applied++;
+          }
+        }
+        console.log(`✅ Applied BGG dimensions to ${applied}/${needDims.length} games (${data.count} in response)`);
+      } catch (e) {
+        console.warn(`⚠️ Could not reach /api/dims: ${e.message}. Is server.py running?`);
+      }
+    }
+
+    /* ───────────────────────────────────────────────────────
+       BGG DIMENSIONS PANEL  (localhost only)
+    ─────────────────────────────────────────────────────── */
+    async function initDimsPanel() {
+      const panel = document.getElementById('bgDimsPanel');
+      if (!panel) return;
+
+      // Fallback notice (non-localhost or server down)
+      const fallbackHtml = `
+        <div style="background:var(--teal-dim);border-left:4px solid var(--teal);padding:0.75rem;border-radius:4px;font-size:0.85rem;color:var(--text)">
+          <strong>📐 Game Dimensions:</strong> Games are sized using a local DB (200+ titles) with common-size fallback.
+          <strong>For accurate dimensions:</strong>
+          <ol style="margin:0.5rem 0 0;padding-left:1.5rem">
+            <li><strong>CSV Import (RECOMMENDED):</strong> BGG Collection → ⋯ → "Download as CSV" → 📁 CSV Upload</li>
+            <li><strong>BGG auto-fetch:</strong> Run <code>server.py</code> locally and log in below</li>
+            <li><strong>Manual Edit:</strong> Click a game → edit dimensions → ✓ Save</li>
+          </ol>
+        </div>`;
+
+      if (!USE_LOCAL_PROXY) {
+        panel.innerHTML = fallbackHtml;
+        return;
+      }
+
+      // Check server status
+      let status = null;
+      try {
+        const r = await fetch('/api/status');
+        if (r.ok) status = await r.json();
+      } catch (_) { }
+
+      if (!status) {
+        panel.innerHTML = fallbackHtml;
+        return;
+      }
+
+      // Server is running — render dynamic panel
+      renderDimsPanel(status);
+    }
+
+    function renderDimsPanel(status) {
+      const panel = document.getElementById('bgDimsPanel');
+      if (!panel) return;
+
+      const cached = status.cached_games || 0;
+
+      panel.innerHTML = `
+        <div style="background:var(--teal-dim);border-left:4px solid var(--teal);padding:0.75rem;border-radius:4px;font-size:0.85rem;color:var(--text)">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
+            <span>✅ <strong>Dimension auto-fetch active</strong> via BGG (no login required).${cached > 0 ? ` <span style="color:var(--text-secondary)">${cached} games cached locally.</span>` : ''}</span>
+            <button type="button" class="btn btn-secondary" id="fetchDimsNowBtn" style="font-size:0.8rem;padding:0.3rem 0.75rem">
+              🔄 Re-fetch All Dims
+            </button>
+          </div>
+        </div>`;
+      document.getElementById('fetchDimsNowBtn')?.addEventListener('click', () => refetchAllDims());
+    }
+
+    async function refetchAllDims() {
+      // Re-fetch dimensions for all currently loaded games
+      if (!games || games.length === 0) {
+        console.log('No games loaded yet — dims will fetch on next collection load');
+        return;
+      }
+      // Pass forceRefetch = true
+      await fetchDimensions(games, true);
+      resolveDimensions(games);
+      const cache = loadCache();
+      if (cache) saveCache(cache.username, games);
+      console.log('✅ Dimensions refreshed for', games.length, 'games');
+      // Re-render if results are visible
+      if (document.getElementById('resultsArea')?.style.display !== 'none') {
+        render();
+      }
+    }
+
+    function parseDimensionsXml(xml, gameList) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'text/xml');
+
+      // Check for parse error
+      if (doc.documentElement.nodeName === 'parsererror') {
+        console.error('XML Parse Error in dimensions:', doc.documentElement.textContent);
+        return;
+      }
+
+      // Top-level items are the games
+      const topItems = doc.querySelectorAll('items > item');
+      console.log(`Parsing dimensions XML: found ${topItems.length} items`);
+
+      topItems.forEach(item => {
+        const id = parseInt(item.getAttribute('id'), 10);
+        const game = gameList.find(g => g.id === id);
+        if (!game || game.dims) return; // already has dims
+
+        // BGG structure: <versions><item type="boardgameversion">...<width value="X"/>...</item></versions>
+        const versionItems = item.querySelectorAll('versions > item');
+
+        for (const ver of versionItems) {
+          const wEl = ver.querySelector('width');
+          const lEl = ver.querySelector('length');
+          const dEl = ver.querySelector('depth');
+
+          const w = wEl ? parseFloat(wEl.getAttribute('value')) : 0;
+          const l = lEl ? parseFloat(lEl.getAttribute('value')) : 0;
+          const d = dEl ? parseFloat(dEl.getAttribute('value')) : 0;
+
+          // BGG stores in inches, convert to cm
+          if (w > 0 && l > 0 && d > 0) {
+            const dims = [w * 2.54, l * 2.54, d * 2.54];
+            game.dims = sortDims(dims);
+            game.source = 'bgg';
+            console.log(`  ✓ ${game.name}: ${game.dims.l} × ${game.dims.w} × ${game.dims.h} cm (from ${w}" × ${l}" × ${d}")`);
+            break;
+          }
+        }
+
+        if (!game.dims) {
+          console.log(`  ✗ ${game.name}: no dimensions found in BGG`);
+        }
+      });
+    }
+
+    /* ═══════════════════════════════════════════════════
+       DIMENSION RESOLUTION
+       ═══════════════════════════════════════════════════ */
+    function sortDims(arr) {
+      const s = [...arr].sort((a, b) => b - a);
+      return { l: round(s[0]), w: round(s[1]), h: round(s[2]) };
+    }
+
+    function round(v) { return Math.round(v * 10) / 10; }
+
+    function resolveDimensions(gameList) {
+      const customDims = JSON.parse(localStorage.getItem('bgsize_customDims') || '{}');
+
+      let custom = 0, bgg = 0, known = 0, fallback = 0;
+
+      gameList.forEach(g => {
+        // Check custom dimensions first (but validate they're real)
+        if (customDims[g.id]) {
+          const cust = customDims[g.id];
+          if (cust.l > 0 && cust.w > 0 && cust.h > 0 && !isNaN(cust.l) && !isNaN(cust.w) && !isNaN(cust.h)) {
+            g.dims = sortDims([cust.l, cust.w, cust.h]);
+            g.source = 'custom';
+            custom++;
+            return;
+          } else {
+            // Invalid custom dims, remove them
+            delete customDims[g.id];
+          }
+        }
+
+        if (g.dims && g.source === 'bgg') {
+          bgg++;
+          return; // already resolved from BGG version data
+        }
+
+        if (KNOWN_GAME_DIMS[g.id]) {
+          const [l, w, h] = KNOWN_GAME_DIMS[g.id];
+          g.dims = sortDims([l, w, h]);
+          g.source = 'known';
+          known++;
+        } else {
+          const size = COMMON_SIZES.standard;
+          g.dims = { l: size.l, w: size.w, h: size.h };
+          g.source = 'common';
+          fallback++;
+        }
+      });
+
+      // Log summary
+      console.log(`Dimension resolution summary:`);
+      console.log(`  BGG API: ${bgg} games`);
+      console.log(`  Known DB: ${known} games`);
+      console.log(`  Custom: ${custom} games`);
+      console.log(`  Fallback (standard): ${fallback} games`);
+
+      if (fallback > 0 && fallback / gameList.length > 0.5) {
+        console.warn(`⚠️ Over 50% of games using fallback dimensions. BGG dimension fetch may have failed.`);
+      }
+
+      // Save cleaned custom dims
+      localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
+    }
+
+    /* ═══════════════════════════════════════════════════
+       KALLAX PACKING
+       ═══════════════════════════════════════════════════ */
+    function calcFit(game, orientation) {
+      const d = game.dims;
+      if (!d) return 'unknown';
+
+      // Check if game can fit in ANY rotation
+      // Kallax internal: 33cm width × 33cm height × 39cm depth
+      // A game fits if two smallest dims ≤ 33cm and largest ≤ 39cm
+      // Allow minor overhang (e.g., games like Concordia, The Gallerist)
+      const dims = [d.l, d.w, d.h].sort((a, b) => a - b);
+      const [smallest, middle, largest] = dims;
+
+      // Can fit in any rotation if this constraint is satisfied
+      // Minor overhang tolerance applied to all dimensions
+      const w = KALLAX.width + WIDTH_OVERHANG_TOLERANCE;   // 35
+      const h = KALLAX.height + WIDTH_OVERHANG_TOLERANCE;  // 35
+      const dp = KALLAX.depth + DEPTH_OVERHANG_TOLERANCE;  // 43
+
+      const fits = smallest <= w && middle <= h && largest <= dp;
+      return fits ? 'yes' : 'toobig';
+    }
+
+    function packGames(gameList, orientation) {
+      const augmented = gameList.map(g => {
+        const sorted = [g.dims.l, g.dims.w, g.dims.h].sort((a, b) => b - a);
+        const fit = calcFit(g, orientation);
+        const packDim = sorted[2]; // shortest dimension = spine width or stack height
+        return { ...g, fit, packDim, sorted };
+      });
+
+      const fitting = augmented.filter(g => g.fit !== 'toobig');
+      const tooBig = augmented.filter(g => g.fit === 'toobig');
+
+      // For doubledeep mode, we can use the full 39cm depth for packing
+      // (two rows of games front-to-back in the same cube)
+      const packLimit = orientation === 'doubledeep' ? KALLAX.depth : KALLAX.width;
+
+      if (orientation !== 'doubledeep') {
+        // For 1D packing, sort by packDim descending (first-fit-decreasing)
+        fitting.sort((a, b) => b.packDim - a.packDim);
+      }
+
+      if (orientation === 'doubledeep') {
+        // ── Per-column depth-stacking bin packing ────────────────────────────
+        // Each cube has independent columns. A column is a front-to-back stack
+        // of games sharing roughly the same lateral position. Games in a column
+        // may have different spines; the column width = max spine across all
+        // games in it.  The depth constraint is per-column and accumulative:
+        //   sum(game.depth for games in column) ≤ TOTAL_DEPTH
+        //
+        // Scoring: minimise depth used by each game (prefer shallowest valid
+        // orientation), so that columns have room for more games behind.
+        // New-column penalty keeps existing columns filling before new ones open.
+        //
+        // Benchmarked against real collection: ~47 cubes vs 107 with previous
+        // two-strip approach. Verified to pack 6× Macao in 1 cube (40.98cm depth).
+        // ─────────────────────────────────────────────────────────────────────
+        const TOTAL_DEPTH = KALLAX.depth + DEPTH_OVERHANG_TOLERANCE; // 43cm
+        const NEW_COL_PENALTY = 100;
+        const SPINE_WEIGHT = 0.1;
+
+        // Build valid orientations for a game, shallowest depth first
+        const ddOrientations = (dims) => {
+          const seen = new Set();
+          const result = [];
+          for (const [h, depth, spine] of [
+            [dims[0], dims[1], dims[2]],
+            [dims[0], dims[2], dims[1]],
+            [dims[1], dims[0], dims[2]],
+            [dims[1], dims[2], dims[0]],
+            [dims[2], dims[0], dims[1]],
+            [dims[2], dims[1], dims[0]],
+          ]) {
+            const key = `${spine.toFixed(2)}|${depth.toFixed(2)}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            if (spine <= KALLAX.width + WIDTH_OVERHANG_TOLERANCE &&
+              depth <= TOTAL_DEPTH &&
+              h <= KALLAX.height + WIDTH_OVERHANG_TOLERANCE) {
+              result.push({ spine, depth, height: h });
+            }
+          }
+          result.sort((a, b) => a.depth - b.depth); // shallowest first
+          return result;
+        };
+
+        // Sort: largest footprint first (First Fit Decreasing — big games open cubes early,
+        // smaller games fill remaining depth/width in existing columns)
+        fitting.sort((a, b) => (b.sorted[1] * b.sorted[2]) - (a.sorted[1] * a.sorted[2]));
+
+        const cubes = [];
+
+        fitting.forEach(g => {
+          const orientations = ddOrientations(g.sorted);
+          if (orientations.length === 0) { g.cubeIndex = -1; g.cubesUsed = 0; return; }
+
+          let best = null;
+          let bestScore = Infinity;
+
+          for (let c = 0; c < cubes.length; c++) {
+            const cube = cubes[c];
+            for (const o of orientations) {
+              // Try stacking into an existing column
+              for (let ci = 0; ci < cube.cols.length; ci++) {
+                const col = cube.cols[ci];
+                if (col.depthUsed + o.depth <= TOTAL_DEPTH) {
+                  const spineCost = Math.max(0, o.spine - col.width);
+                  if (cube.widthLeft >= spineCost) {
+                    // Penalise joins that leave < 2cm remaining depth — no future game fits there
+                    const depthAfter = TOTAL_DEPTH - col.depthUsed - o.depth;
+                    const wastePenalty = depthAfter < 2 ? NEW_COL_PENALTY + 50 : 0;
+                    const score = o.depth + spineCost * SPINE_WEIGHT + wastePenalty;
+                    if (score < bestScore) {
+                      best = { c, ci, o, spineCost };
+                      bestScore = score;
+                    }
+                  }
+                }
+              }
+              // Try opening a new column in this cube
+              if (cube.widthLeft >= o.spine) {
+                const score = NEW_COL_PENALTY + o.depth + (cube.widthLeft - o.spine) * 0.01;
+                if (score < bestScore) {
+                  best = { c, ci: -1, o, spineCost: o.spine };
+                  bestScore = score;
+                }
+              }
+            }
+          }
+
+          if (best !== null) {
+            const cube = cubes[best.c];
+            cube.widthLeft -= best.spineCost;
+            if (best.ci >= 0) {
+              cube.cols[best.ci].depthUsed += best.o.depth;
+              cube.cols[best.ci].width = Math.max(cube.cols[best.ci].width, best.o.spine);
+            } else {
+              cube.cols.push({ depthUsed: best.o.depth, width: best.o.spine });
+            }
+            g.cubeIndex = best.c;
+          } else {
+            const o = orientations[0]; // shallowest depth
+            cubes.push({ widthLeft: Math.max(0, KALLAX.width - o.spine), cols: [{ depthUsed: o.depth, width: o.spine }] });
+            g.cubeIndex = cubes.length - 1;
+          }
+          g.cubesUsed = 1;
+        });
+
+        const fittingCubes = cubes.length;
+        tooBig.forEach(g => { g.cubeIndex = -1; g.cubesUsed = 0; });
+        return { games: [...fitting, ...tooBig], totalCubes: fittingCubes };
+      }
+
+      // Standard bin packing (vertical, horizontal, bestfit)
+      let currentCube = 0;
+      let remaining = packLimit;
+
+      fitting.forEach(g => {
+        if (g.packDim > remaining) {
+          currentCube++;
+          remaining = packLimit;
+        }
+        g.cubeIndex = currentCube;
+        g.cubesUsed = 1;
+        remaining -= g.packDim;
+      });
+
+      const fittingCubes = fitting.length > 0 ? currentCube + 1 : 0;
+
+      tooBig.forEach((g) => {
+        g.cubeIndex = -1;
+        g.cubesUsed = 0;
+      });
+
+      return { games: [...fitting, ...tooBig], totalCubes: fittingCubes };
+    }
+
+    /* ═══════════════════════════════════════════════════
+       RENDERING
+       ═══════════════════════════════════════════════════ */
+    // Store packed data globally for cube click handlers
+    let lastPacked = [];
+    let lastExtraShelvesText = '';
+
+    function render() {
+      if (!games || games.length === 0) {
+        showError('No games to display. Fetch a collection or use Demo Mode.');
+        resultsArea.classList.remove('visible');
+        return;
+      }
+      hideError();
+      const orientation = orientationSelect.value;
+      const kallaxKey = kallaxSizeSelect.value;
+      const minSizeKey = minSizeSelect.value;
+      const kallax = KALLAX_SIZES[kallaxKey];
+      const minThreshold = MIN_SIZE_THRESHOLDS[minSizeKey];
+
+
+
+      // Filter games by minimum size (uses effective largest: respects overrides, bumps tiny→card)
+      const excludeFallback = document.getElementById('excludeFallback')?.checked;
+      const filteredGames = games.filter(g => {
+        if (excludedGameIds.has(g.id)) return false;
+        if (excludeFallback && g.source === 'common') return false;
+        return effectiveLargest(g) >= minThreshold;
+      });
+
+      const sizeExcludedCount = games.filter(g => !excludedGameIds.has(g.id)).length - filteredGames.length;
+      const manuallyExcludedCount = excludedGameIds.size;
+      const totalExcludedCount = sizeExcludedCount + manuallyExcludedCount;
+
+
+
+      // Set fit status on ALL games (needed for renderTable)
+      games.forEach(g => {
+        g.fit = calcFit(g, orientation);
+      });
+
+      let maxAllowedCubes = Infinity;
+      let unitsNeeded = 0;
+      let spareCubes = 0;
+      let isAdvanced = shelfMode === 'advanced';
+
+      if (isAdvanced) {
+        maxAllowedCubes = customShelves.reduce((sum, shelf) => {
+          const parts = shelf.split('x').map(Number);
+          return sum + (parts[0] * parts[1]);
+        }, 0);
+      }
+
+      let { games: packed, totalCubes } = packGames(filteredGames, orientation);
+
+      let extraCubesNeeded = 0;
+      let extraShelvesText = '';
+
+      if (isAdvanced) {
+        // We know exactly how many units/slots we have
+        unitsNeeded = customShelves.length;
+        const totalSlots = maxAllowedCubes;
+        spareCubes = Math.max(0, totalSlots - totalCubes);
+
+        // Manually move overflow games if they exceed our allowed custom cubes
+        if (totalCubes > maxAllowedCubes) {
+          extraCubesNeeded = totalCubes - maxAllowedCubes;
+          const kallaxUnitSpace = kallax.cubes; // using the generic config size for the estimate
+          const extraShelvesNeeded = Math.ceil(extraCubesNeeded / kallaxUnitSpace);
+          extraShelvesText = ` — Requires ${extraCubesNeeded} more cubes (approx. ${extraShelvesNeeded}x ${kallaxKey} shelves)`;
+
+          packed.forEach(g => {
+            if (g.cubeIndex >= maxAllowedCubes) {
+              g.cubeIndex = -1;
+              g.cubesUsed = 0;
+            }
+          });
+          // Update the renderable total cubes to not draw infinite cubes
+          totalCubes = maxAllowedCubes;
+        }
+
+      } else {
+        // Derive mathematical infinite units
+        unitsNeeded = Math.ceil(totalCubes / kallax.cubes);
+        const totalSlots = unitsNeeded * kallax.cubes;
+        spareCubes = Math.max(0, totalSlots - totalCubes);
+      }
+
+      lastPacked = packed;
+      lastExtraShelvesText = extraShelvesText;
+
+      // Stats
+      let statsLabel = filteredGames.length;
+      if (totalExcludedCount > 0) {
+        statsLabel = `${filteredGames.length} (${totalExcludedCount} excluded)`;
+      }
+      $('statGames').textContent = statsLabel;
+      $('statCubes').textContent = totalCubes;
+      $('statUnits').textContent = unitsNeeded;
+      $('statSpare').textContent = spareCubes;
+      $('gamesCount').textContent = filteredGames.length;
+
+      // Kallax visual — clickable cubes
+      renderKallaxVisual(unitsNeeded, kallax, totalCubes, packed, orientation);
+
+      // Cube breakdown (collapsed by default)
+      renderCubeBreakdown(packed, totalCubes, orientation);
+
+      // Shelf roster — all cubes with their games
+      renderShelfRoster(packed, orientation);
+
+      // Table, minThreshold, minSizeKey
+      renderTable(packed, orientation, minThreshold, minSizeKey);
+
+      // Show batch edit button if there are games with fallback dimensions
+      const fallbackCount = filteredGames.filter(g => g.source === 'common').length;
+      if (fallbackCount > 0) {
+        $('batchEditBtn').style.display = 'inline-flex';
+        $('batchEditBtn').textContent = `📋 Batch Edit (${fallbackCount})`;
+      } else {
+        $('batchEditBtn').style.display = 'none';
+      }
+
+      resultsArea.classList.add('visible');
+    }
+
+    function renderKallaxVisual(units, kallax, filledCount, packed, orientation) {
+      const container = $('kallaxVisual');
+      container.innerHTML = '';
+
+      // Build cube→games map
+      const cubeMap = {};
+      packed.forEach(g => {
+        const ci = g.cubeIndex;
+        if (!cubeMap[ci]) cubeMap[ci] = [];
+        cubeMap[ci].push(g);
+        if (g.cubesUsed === 2 && !cubeMap[ci + 1]) cubeMap[ci + 1] = [g];
+      });
+
+      let cubeIdx = 0;
+      let shelvesToDraw = [];
+
+      if (shelfMode === 'advanced') {
+        shelvesToDraw = customShelves.map(s => {
+          const parts = s.split('x').map(Number);
+          return { cols: parts[0], cubes: parts[0] * parts[1], label: `${s.replace('x', '×')} Shelf` };
+        });
+      } else {
+        for (let i = 0; i < units; i++) {
+          shelvesToDraw.push({ cols: kallax.cols, cubes: kallax.cubes, label: `Unit ${i + 1}` });
+        }
+      }
+
+      for (let u = 0; u < shelvesToDraw.length; u++) {
+        const shape = shelvesToDraw[u];
+        const unitDiv = document.createElement('div');
+        unitDiv.className = 'kallax-unit';
+
+        const label = document.createElement('div');
+        label.className = 'kallax-label';
+        label.textContent = shape.label;
+        unitDiv.appendChild(label);
+
+        const grid = document.createElement('div');
+        grid.className = 'kallax-grid';
+        grid.style.gridTemplateColumns = `repeat(${shape.cols}, 36px)`;
+
+        for (let c = 0; c < shape.cubes; c++) {
+          const ci = cubeIdx;
+          const isFilled = ci < filledCount;
+          const cube = document.createElement('div');
+          const gamesInCube = cubeMap[ci] || [];
+          cube.className = 'kallax-cube ' + (isFilled ? 'filled' : 'empty');
+          if (isFilled && gamesInCube.length > 0) {
+            cube.style.cursor = 'pointer';
+            cube.title = gamesInCube.map(g => g.name).join(', ');
+            // Show game count badge
+            const count = document.createElement('span');
+            count.style.cssText = 'font-size:10px;color:#fff;font-weight:700;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)';
+            count.textContent = gamesInCube.length;
+            cube.appendChild(count);
+            cube.addEventListener('click', () => {
+              showCubeDetail(ci, gamesInCube, orientation);
+            });
+          }
+          cubeIdx++;
+          grid.appendChild(cube);
+        }
+
+        unitDiv.appendChild(grid);
+        container.appendChild(unitDiv);
+      }
+    }
+
+    function showCubeDetail(cubeIndex, gamesInCube, orientation) {
+      const bd = $('cubeBreakdown');
+      let usedSpace = 0;
+      let remaining = 0;
+      let limit = KALLAX.width;
+      let label = 'width';
+
+      if (orientation === 'doubledeep') {
+        // For doubledeep, we don't have the exact column widths here,
+        // but we can estimate the used width by taking the max spine in each column.
+        // Actually, it's better to just show the games without a misleading "remaining width"
+        // since it's a 2D packing.
+        bd.innerHTML = `
+          <div style="background:var(--card-bg);border:2px solid var(--accent);border-radius:8px;padding:1rem;animation:fadeIn 0.2s">
+            <h3 style="margin:0 0 0.5rem">📦 Cube #${cubeIndex + 1}</h3>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 0.75rem">
+              ${gamesInCube.length} game${gamesInCube.length !== 1 ? 's' : ''} (Double Deep)
+            </p>
+            <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
+              <thead><tr style="border-bottom:1px solid var(--border)">
+                <th style="text-align:left;padding:0.3rem 0.5rem">Game</th>
+                <th style="text-align:right;padding:0.3rem 0.5rem">Dims</th>
+              </tr></thead>
+              <tbody>
+                ${gamesInCube.map(g => `
+                  <tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:0.3rem 0.5rem">${g.name}</td>
+                    <td style="text-align:right;padding:0.3rem 0.5rem;color:var(--text-secondary)">
+                      ${g.dims.l}×${g.dims.w}×${g.dims.h}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+
+      usedSpace = gamesInCube.reduce((sum, g) => sum + Math.min(g.dims.l, g.dims.w, g.dims.h), 0);
+      remaining = limit - usedSpace;
+
+      bd.innerHTML = `
+        <div style="background:var(--card-bg);border:2px solid var(--accent);border-radius:8px;padding:1rem;animation:fadeIn 0.2s">
+          <h3 style="margin:0 0 0.5rem">📦 Cube #${cubeIndex + 1}</h3>
+          <p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 0.75rem">
+            ${gamesInCube.length} game${gamesInCube.length !== 1 ? 's' : ''} — 
+            ${usedSpace.toFixed(1)}cm used / ${remaining.toFixed(1)}cm remaining of ${limit}cm ${label}
+          </p>
+          <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
+            <thead><tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:0.3rem 0.5rem">Game</th>
+              <th style="text-align:left;padding:0.3rem 0.5rem">Dimensions</th>
+              <th style="text-align:left;padding:0.3rem 0.5rem">Pack Width</th>
+            </tr></thead>
+            <tbody>
+              ${gamesInCube.map(g => {
+        const pw = Math.min(g.dims.l, g.dims.w, g.dims.h);
+        return `<tr class="game-row" onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})" title="Click to edit dimensions" style="border-bottom:1px solid var(--border)">
+                  <td style="padding:0.3rem 0.5rem">${escHtml(g.name)}</td>
+                  <td style="padding:0.3rem 0.5rem">${g.dims.l} × ${g.dims.w} × ${g.dims.h}</td>
+                  <td style="padding:0.3rem 0.5rem">${pw}cm</td>
+                </tr>`;
+      }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      bd.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function renderCubeBreakdown(packed, totalCubes, orientation) {
+      // Clear any previous detail
+      $('cubeBreakdown').innerHTML = '';
+    }
+
+    function exportRoster() {
+      if (!lastPacked || lastPacked.length === 0) return;
+
+      const kallaxSelect = $('kallaxSize');
+      const orientationSelect = $('orientation');
+      const minSizeSelect = $('minSize');
+
+      const kallaxTxt = kallaxSelect.options[kallaxSelect.selectedIndex].text;
+      const orientTxt = orientationSelect.options[orientationSelect.selectedIndex].text;
+      const minSizeTxt = minSizeSelect.options[minSizeSelect.selectedIndex].text;
+
+      const cubeMap = {};
+      const tooBig = [];
+      lastPacked.forEach(g => {
+        if (g.cubeIndex < 0) { tooBig.push(g); return; }
+        if (!cubeMap[g.cubeIndex]) cubeMap[g.cubeIndex] = [];
+        if (!cubeMap[g.cubeIndex].find(x => x.id === g.id)) cubeMap[g.cubeIndex].push(g);
+      });
+
+      const cubeNums = Object.keys(cubeMap).map(Number).sort((a, b) => a - b);
+      let text = "Kallax Shelf Roster\n====================\n\n";
+      text += `Filters Applied:\n`;
+      text += `- Shelf Mode: ${shelfMode === 'advanced' ? 'Advanced (Custom Mix)' : 'Basic (Single Size)'}\n`;
+      text += `- Shelf Size: ${shelfMode === 'advanced' ? customShelves.join(', ') : kallaxTxt}\n`;
+      text += `- Orientation: ${orientTxt}\n`;
+      text += `- Minimum Game Size: ${minSizeTxt}\n\n`;
+      text += `--------------------\n\n`;
+
+      let currentCubeExported = 0;
+      let totalCubesToExport = cubeNums.length;
+
+      let shelvesToExport = [];
+      if (shelfMode === 'advanced') {
+        shelvesToExport = customShelves.map(s => {
+          const parts = s.split('x').map(Number);
+          return { cubes: parts[0] * parts[1], label: `${s.replace('x', '×')} Shelf` };
+        });
+      } else {
+        const kallax = KALLAX_SIZES[kallaxSizeSelect.value];
+        const unitsNeeded = Math.ceil(totalCubesToExport / kallax.cubes);
+        for (let i = 0; i < unitsNeeded; i++) {
+          shelvesToExport.push({ cubes: kallax.cubes, label: `Unit ${i + 1}` });
+        }
+      }
+
+      for (let s = 0; s < shelvesToExport.length; s++) {
+        const shelf = shelvesToExport[s];
+        const cubesInThisShelf = [];
+
+        for (let c = 0; c < shelf.cubes; c++) {
+          if (currentCubeExported < totalCubesToExport) {
+            cubesInThisShelf.push(currentCubeExported);
+            currentCubeExported++;
+          }
+        }
+
+        if (cubesInThisShelf.length === 0) break;
+
+        text += `${shelf.label}\n`;
+        text += `${"=".repeat(shelf.label.length)}\n\n`;
+
+        cubesInThisShelf.forEach(ci => {
+          text += `Cube #${ci + 1}\n`;
+          text += `--------\n`;
+          const gamesInCube = cubeMap[ci] || [];
+          gamesInCube.forEach(g => {
+            text += `  - ${g.name} (${g.dims.l}x${g.dims.w}x${g.dims.h} cm)\n`;
+          });
+          text += `\n`;
+        });
+      }
+
+      if (tooBig.length) {
+        text += `Does Not Fit / No Free Space${lastExtraShelvesText}\n`;
+        text += `----------------------------\n`;
+        tooBig.forEach(g => {
+          text += `  - ${g.name} (${g.dims.l}x${g.dims.w}x${g.dims.h} cm)\n`;
+        });
+      }
+
+      const blob = new Blob([text], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "shelf_roster.txt";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function toggleShelfRoster() {
+      const body = $('shelfRosterBody');
+      const chevron = $('shelfRosterChevron');
+      const open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : '';
+      chevron.style.transform = open ? '' : 'rotate(90deg)';
+    }
+
+    function renderShelfRoster(packed, orientation) {
+      const card = $('shelfRosterCard');
+      const body = $('shelfRosterBody');
+      if (!packed || packed.length === 0) { card.style.display = 'none'; return; }
+      card.style.display = '';
+      // don't touch body.style.display — preserve open/closed state
+
+      // Group games by cubeIndex
+      const cubeMap = {};
+      const tooBig = [];
+      packed.forEach(g => {
+        if (g.cubeIndex < 0) { tooBig.push(g); return; }
+        if (!cubeMap[g.cubeIndex]) cubeMap[g.cubeIndex] = [];
+        // avoid duplicates from cubesUsed=2 spanning logic
+        if (!cubeMap[g.cubeIndex].find(x => x.id === g.id)) cubeMap[g.cubeIndex].push(g);
+      });
+
+      const cubeNums = Object.keys(cubeMap).map(Number).sort((a, b) => a - b);
+      $('shelfRosterCount').textContent = `${cubeNums.length} cube${cubeNums.length !== 1 ? 's' : ''}, ${packed.filter(g => g.cubeIndex >= 0).length} games`;
+
+      let rosterHTML = '';
+      let currentCubeRendered = 0;
+      let totalCubesToRender = cubeNums.length;
+
+      let shelvesToDraw = [];
+      if (shelfMode === 'advanced') {
+        shelvesToDraw = customShelves.map(s => {
+          const parts = s.split('x').map(Number);
+          return { cubes: parts[0] * parts[1], label: `${s.replace('x', '×')} Shelf` };
+        });
+      } else {
+        const kallax = KALLAX_SIZES[kallaxSizeSelect.value];
+        const unitsNeeded = Math.ceil(totalCubesToRender / kallax.cubes);
+        for (let i = 0; i < unitsNeeded; i++) {
+          shelvesToDraw.push({ cubes: kallax.cubes, label: `Unit ${i + 1}` });
+        }
+      }
+
+      for (let s = 0; s < shelvesToDraw.length; s++) {
+        const shelf = shelvesToDraw[s];
+        const cubesInThisShelf = [];
+
+        // Grab the next N cubes from our global pool that belong to this shelf
+        for (let c = 0; c < shelf.cubes; c++) {
+          if (currentCubeRendered < totalCubesToRender) {
+            cubesInThisShelf.push(currentCubeRendered);
+            currentCubeRendered++;
+          }
+        }
+
+        if (cubesInThisShelf.length === 0) break;
+
+        const cubeGrid = cubesInThisShelf.map(ci => {
+          const games = cubeMap[ci] || [];
+          let spineInfo = '';
+          if (orientation !== 'doubledeep') {
+            const used = games.reduce((acc, g) => acc + Math.min(g.dims.l, g.dims.w, g.dims.h), 0);
+            const KALLAX_WIDTH = 33;
+            const rem = KALLAX_WIDTH - used;
+            spineInfo = `<div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem">${used.toFixed(1)}cm / ${KALLAX_WIDTH}cm &mdash; <span style="color:${rem < 0 ? 'var(--red,#ef4444)' : 'var(--text-secondary)'}">${rem.toFixed(1)}cm free</span></div>`;
+          }
+          const rows = games.map(g => `
+            <div class="game-row" onclick="openEditModal(${g.id},'${escHtml(g.name).replace(/'/g, "\\'")}',${g.dims.l},${g.dims.w},${g.dims.h})" title="Click to edit" style="display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.85rem">
+              <span>${escHtml(g.name)}</span>
+              <span style="color:var(--text-secondary);white-space:nowrap;margin-left:0.5rem">${g.dims.l}×${g.dims.w}×${g.dims.h}</span>
+            </div>`).join('');
+          return `<div style="background:var(--bg-card-alt,var(--card-bg));border:1px solid var(--border);border-radius:8px;padding:0.75rem;min-width:0">
+            <div style="font-weight:700;margin-bottom:0.35rem">📦 Cube #${ci + 1} <span style="font-weight:400;color:var(--text-secondary);font-size:0.8rem">(${games.length} game${games.length !== 1 ? 's' : ''})</span></div>
+            ${spineInfo}${rows}
+          </div>`;
+        }).join('');
+
+        rosterHTML += `
+          <div style="margin-bottom: 2rem;">
+            <h3 style="margin-top:0;margin-bottom:0.75rem;border-bottom:1px solid var(--border);padding-bottom:0.25rem">${shelf.label}</h3>
+            <div class="print-roster-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem">
+              ${cubeGrid}
+            </div>
+          </div>
+        `;
+      }
+
+      const tooBigSection = tooBig.length ? `
+        <div style="margin-top:1rem;background:var(--bg-card);padding:1rem;border:1px solid var(--border);border-radius:8px;">
+          <h3 style="margin-top:0;font-weight:700;color:var(--red,#ef4444);margin-bottom:0.5rem">✗ Doesn't Fit / No Free Space<span style="font-weight:400;color:currentColor;font-size:0.85rem">${lastExtraShelvesText}</span> (${tooBig.length} games)</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem">${tooBig.map(g => `<span style="background:var(--bg-card-alt,var(--card-bg));border:1px solid var(--border);border-radius:4px;padding:0.2rem 0.5rem;font-size:0.82rem">${escHtml(g.name)}</span>`).join('')}</div>
+        </div>` : '';
+
+      const kallaxSelect = $('kallaxSize');
+      const orientationSelect = $('orientation');
+      const minSizeSelect = $('minSize');
+
+      const kallaxTxt = kallaxSelect.options[kallaxSelect.selectedIndex].text;
+      const orientTxt = orientationSelect.options[orientationSelect.selectedIndex].text;
+      const minSizeTxt = minSizeSelect.options[minSizeSelect.selectedIndex].text;
+
+      const printHeader = `
+        <div style="display:none" class="print-only-filter-header">
+           <p style="margin-bottom: 0.25rem;"><strong>Filters Applied:</strong></p>
+           <ul style="font-size:0.85rem; margin-top:0; margin-bottom: 1rem; padding-left: 1.5rem;">
+             <li><strong>Shelf Size:</strong> ${kallaxTxt}</li>
+             <li><strong>Orientation:</strong> ${orientTxt}</li>
+             <li><strong>Minimum Game Size:</strong> ${minSizeTxt}</li>
+           </ul>
+        </div>
+      `;
+
+      body.innerHTML = `${printHeader}${rosterHTML}${tooBigSection}`;
+    }
+
+    function sourceBadge(src) {
+      if (src === 'custom') return '<span class="badge badge-custom">✏️ Custom Size</span>';
+      if (src === 'bgg') return '<span class="badge badge-bgg">BGG Version</span>';
+      if (src === 'known') return '<span class="badge badge-known">Known Size</span>';
+      return '<span class="badge badge-common">Common Size</span>';
+    }
+
+    function fitBadge(fit) {
+      if (fit === 'yes') return '<span class="badge badge-fit-yes">✓ Fits</span>';
+      return '<span class="badge badge-fit-no">✗ Too Big</span>';
+    }
+
+    // Returns the effective largest dimension used for size filtering.
+    // Respects overrides; bumps genuinely tiny games (< card threshold) up to card.
+    function effectiveLargest(g) {
+      if (sizeOverrides[g.id]) {
+        // Return the minimum value that satisfies the override category's threshold
+        return MIN_SIZE_THRESHOLDS[sizeOverrides[g.id]];
+      }
+      const largest = Math.max(g.dims.l, g.dims.w, g.dims.h);
+      // Anything below the card threshold is still treated as a card game
+      return Math.max(largest, MIN_SIZE_THRESHOLDS.card);
+    }
+
+    const SIZE_CYCLE = [null, 'card', 'small', 'medium', 'standard'];
+    const SIZE_LABELS = { card: 'Card', small: 'Small', medium: 'Medium', standard: 'Standard' };
+
+    function cycleSizeOverride(gameId) {
+      const current = sizeOverrides[gameId] || null;
+      const idx = SIZE_CYCLE.indexOf(current);
+      const next = SIZE_CYCLE[(idx + 1) % SIZE_CYCLE.length];
+      if (next === null) {
+        delete sizeOverrides[gameId];
+      } else {
+        sizeOverrides[gameId] = next;
+      }
+      saveSizeOverrides();
+      if (games.length) render();
+    }
+
+    function sizeBadges(gameId, dims) {
+      const override = sizeOverrides[gameId];
+      const largest = Math.max(dims.l, dims.w, dims.h);
+      const categories = ['card', 'small', 'medium', 'standard'];
+      let autoMatch = largest < MIN_SIZE_THRESHOLDS.card ? 'card' : null;
+      categories.forEach(cat => {
+        if (largest >= MIN_SIZE_THRESHOLDS[cat]) autoMatch = cat;
+      });
+
+      const activeCategory = override || autoMatch;
+      const isOverride = !!override;
+      const isAutoTiny = !override && largest < MIN_SIZE_THRESHOLDS.card;
+
+      if (!activeCategory) {
+        return `<span class="badge badge-common" style="cursor:pointer" onclick="event.stopPropagation();cycleSizeOverride(${gameId})" title="Click to set size category">—</span>`;
+      }
+
+      const style = isOverride
+        ? 'cursor:pointer;border:2px dashed currentColor;border-radius:999px'
+        : isAutoTiny
+          ? 'cursor:pointer;opacity:0.7;font-style:italic'
+          : 'cursor:pointer';
+      const titleText = isOverride
+        ? `Override: ${SIZE_LABELS[activeCategory]} — click to cycle`
+        : isAutoTiny
+          ? `Tiny game, treated as Card — click to override`
+          : `Auto: ${SIZE_LABELS[activeCategory]} — click to override`;
+
+      return `<span class="badge badge-${activeCategory}" style="${style}" onclick="event.stopPropagation();cycleSizeOverride(${gameId})" title="${titleText}">${SIZE_LABELS[activeCategory]}</span>`;
+    }
+
+    function renderTable(packed, orientation, minThreshold = 0, minSizeKey = 'all') {
+      const searchStr = $('searchFilter').value.toLowerCase();
+      const fitVal = $('fitFilter').value;
+
+      let displayGames = games.filter(g => {
+        if (searchStr && !g.name.toLowerCase().includes(searchStr)) return false;
+        if (fitVal !== 'all' && g.fit !== fitVal) return false;
+        return true;
+      });
+
+      $('gamesCount').textContent = displayGames.length;
+
+      // Build a map of packed games for quick lookup
+      const packedMap = {};
+      if (packed) {
+        packed.forEach(g => {
+          packedMap[g.id] = g;
+        });
+      }
+
+      // Apply current sort
+      displayGames.sort((a, b) => {
+        let va, vb;
+        switch (sortCol) {
+          case 'name': va = a.name.toLowerCase(); vb = b.name.toLowerCase(); break;
+          case 'dims': va = a.dims.l * a.dims.w * a.dims.h; vb = b.dims.l * b.dims.w * b.dims.h; break;
+          case 'source': va = a.source; vb = b.source; break;
+          case 'fit': va = a.fit; vb = b.fit; break;
+          case 'cubes': va = a.cubeIndex; vb = b.cubeIndex; break;
+          default: va = a.name.toLowerCase(); vb = b.name.toLowerCase();
+        }
+        if (va < vb) return sortAsc ? -1 : 1;
+        if (va > vb) return sortAsc ? 1 : -1;
+        return 0;
+      });
+
+      const tbody = $('gamesBody');
+      tbody.innerHTML = displayGames.map(g => {
+        const passesFilter = effectiveLargest(g) >= minThreshold;
+        const isExcluded = excludedGameIds.has(g.id);
+        const isIncluded = passesFilter && !isExcluded;
+        const packedGame = packedMap[g.id];
+        const rowClass = isIncluded ? 'game-row' : 'game-row excluded-game';
+        let cubeInfo = '—';
+        if (isIncluded && packedGame) {
+          cubeInfo = packedGame.cubesUsed === 0 ? 'Too Big' : (packedGame.cubeIndex + 1);
+        }
+        return `
+    <tr class="${rowClass}" style="border-bottom:1px solid var(--border)">
+      <td style="text-align:center">
+        <input type="checkbox" ${isIncluded ? 'checked' : ''} ${!passesFilter ? 'disabled title="Filtered out by size setting"' : 'onchange="toggleExcludeGame(' + g.id + ')" title="Include/exclude from shelf planning"'}>
+      </td>
+      <td>${sizeBadges(g.id, g.dims)}</td>
+      <td onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})" title="Click to edit dimensions" style="cursor:pointer">${escHtml(g.name)}</td>
+      <td onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})" title="Click to edit dimensions" style="cursor:pointer">${g.dims.l} × ${g.dims.w} × ${g.dims.h}</td>
+      <td>${sourceBadge(g.source)}</td>
+      <td>${fitBadge(g.fit)}</td>
+      <td>${cubeInfo}</td>
+    </tr>
+  `;
+      }).join('');
+
+      // Update sort arrows
+      document.querySelectorAll('#gamesTable thead th').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (arrow) {
+          if (th.dataset.sort === sortCol) {
+            arrow.textContent = sortAsc ? '▲' : '▼';
+          } else {
+            arrow.textContent = '';
+          }
+        }
+      });
+    }
+
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function parseCsvLine(text) {
+      const result = [];
+      let current = '';
+      let inQuote = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+
+        if (char === '"') {
+          if (inQuote && i + 1 < text.length && text[i + 1] === '"') {
+            current += '"';
+            i++; // skip escaped quote
+          } else {
+            inQuote = !inQuote;
+          }
+        } else if (char === ',' && !inQuote) {
+          result.push(current);
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current);
+      return result.map(s => s.trim());
+    }
+
+    /* ═══════════════════════════════════════════════════
+       SORTING
+       ═══════════════════════════════════════════════════ */
+    document.querySelectorAll('#gamesTable thead th').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.sort;
+        if (!col) return;
+        if (sortCol === col) { sortAsc = !sortAsc; }
+        else { sortCol = col; sortAsc = true; }
+        render();
+      });
+    });
+
+    function toggleExcludeGame(gameId) {
+      if (excludedGameIds.has(gameId)) {
+        excludedGameIds.delete(gameId);
+      } else {
+        excludedGameIds.add(gameId);
+      }
+      if (games.length) render();
+    }
+
+    /* ═══════════════════════════════════════════════════
+       CONFIG CHANGE
+       ═══════════════════════════════════════════════════ */
+    kallaxSizeSelect.addEventListener('change', () => { if (games.length) render(); });
+    orientationSelect.addEventListener('change', () => { if (games.length) render(); });
+    minSizeSelect.addEventListener('change', () => { if (games.length) render(); });
+    document.getElementById('excludeFallback')?.addEventListener('change', () => { if (games.length) render(); });
+
+    /* ═══════════════════════════════════════════════════
+       FORM SUBMIT
+       ═══════════════════════════════════════════════════ */
+    async function doFetch(username, password) {
+      if (fetchBtn) fetchBtn.disabled = true;
+      demoBtn.disabled = true;
+      if (resumeBtn) resumeBtn.disabled = true;
+      try {
+
+        showProgress(10, 'Fetching collection…');
+        games = await fetchCollection(username);
+        if (games.length === 0) {
+          showError('No owned games found for that username.');
+          hideProgress();
+          return;
+        }
+
+        // Save collection immediately so we don't lose it
+        saveCache(username, games);
+        updateCacheStatus();
+
+        showProgress(50, `Found ${games.length} games. Resolving dimensions from known database…`);
+        // Note: BGG API blocked dimension lookup, using local database instead
+        await fetchDimensions(games);
+
+        resolveDimensions(games);
+
+        // Validate that all games have dimensions
+        const invalidGames = games.filter(g => !g.dims || !g.dims.l || !g.dims.w || !g.dims.h);
+        if (invalidGames.length > 0) {
+          console.warn(`${invalidGames.length} games have invalid dimensions, fixing...`);
+          invalidGames.forEach(g => {
+            g.dims = { l: 29.5, w: 29.5, h: 7.5 };
+            g.source = 'common';
+          });
+        }
+
+        // Save again with dimensions resolved
+        saveCache(username, games);
+        updateCacheStatus();
+
+        showProgress(100, 'Done!');
+        // Show notification about dimension sources
+        const summary = {
+          known: games.filter(g => g.source === 'known').length,
+          common: games.filter(g => g.source === 'common').length,
+        };
+        console.log(`\n📊 Collection loaded successfully:\n  Known dimensions: ${summary.known} games\n  Using fallback: ${summary.common} games\n\n💡 Tip: For accurate dimensions, create custom entries or CSV import with data.\n`);
+
+        setTimeout(hideProgress, 800);
+        render();
+      } catch (err) {
+        // Even on error, save what we have so far
+        if (games.length) {
+          resolveDimensions(games);
+          saveCache(username, games);
+          updateCacheStatus();
+          render();
+          showError('Partial sync — ' + err.message + '. Click Resume Sync to retry later.');
+        } else {
+          showError('Error: ' + err.message);
+        }
+        hideProgress();
+      } finally {
+        if (fetchBtn) fetchBtn.disabled = false;
+        demoBtn.disabled = false;
+        if (resumeBtn) resumeBtn.disabled = false;
+      }
+    }
+
+    // Open BGG Collection for username
+    if (openCollectionBtn) {
+      openCollectionBtn.addEventListener('click', () => {
+        const username = bggUsername.value.trim();
+        if (!username) {
+          showError('Please enter a BGG username');
+          return;
+        }
+        const url = `https://boardgamegeek.com/collection/user/${encodeURIComponent(username)}`;
+        window.open(url, '_blank');
+      });
+    }
+
+    // CSV Upload handler
+    csvUpload.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      hideError();
+      try {
+        showProgress(10, 'Reading CSV file…');
+
+        const text = await file.text();
+        const lines = text.trim().split('\n');
+
+        if (lines.length < 2) {
+          throw new Error('CSV file is empty or invalid');
+        }
+
+        // Parse CSV header to find Game ID and Game Name columns
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        let idCol = headers.findIndex(h => h.includes('id') || h.includes('objectid'));
+        let nameCol = headers.findIndex(h => h.includes('name'));
+        let commentCol = headers.findIndex(h => h.includes('comment'));
+
+        if (idCol === -1 || nameCol === -1) {
+          throw new Error('CSV must have "Game ID" and "Game Name" columns');
+        }
+
+        // Parse games from CSV
+        games = [];
+        const numHeaders = headers.length;
+
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          // Simple CSV parsing (handles basic quotes)
+          let cols = [];
+          let current = '';
+          let inQuotes = false;
+          for (let char of line) {
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) {
+              cols.push(current.trim().replace(/^"|"$/g, ''));
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          cols.push(current.trim().replace(/^"|"$/g, ''));
+
+          // BGG CSVs often contain unescaped quotes in the "comment" column, which creates
+          // extra columns when parsed. Because the "objectname" and "objectid" columns 
+          // are before the comment, standard parsing shifts them. However wait, "objectid" 
+          // and "objectname" are usually at the beginning of the BGG export! 
+          // Wait, if they are at the beginning, they shouldn't shift!
+          // Let's just use the direct parsed array, but we'll use a safer parser.
+
+          // Actually, let's use the robust parser we built
+          cols = parseCsvLine(line);
+
+          let id = parseInt(cols[idCol], 10);
+          let name = cols[nameCol];
+
+          // Fallback: if we got shifted because of extra commas in a preceding column 
+          // (like if name/id are after comment, though usually they are first),
+          // we can try fetching from the end. But in the user's string:
+          // "Jan. 2024 #11: Barrage is my... love.,",",",82605291,7.8...
+          // The name "Barrage" is near the end! BGG allows custom columns.
+          // Since we know the header length, if cols.length > numHeaders, the comment 
+          // field absorbed extra commas.
+
+          if (cols.length > numHeaders) {
+            const shift = cols.length - numHeaders;
+
+            // If the ID column comes after the comment column, it was shifted!
+            if (commentCol !== -1 && idCol > commentCol) {
+              id = parseInt(cols[idCol + shift], 10);
+            }
+            if (commentCol !== -1 && nameCol > commentCol) {
+              name = cols[nameCol + shift];
+            }
+
+            // If neither of those caught it (e.g. comment wasn't properly named), 
+            // fallback to the "distance from the end" logic Since BGG columns are static at the end.
+            if (isNaN(id) || !name) {
+              if (idCol > numHeaders / 2) {
+                const offsetFromEnd = numHeaders - 1 - idCol;
+                id = parseInt(cols[cols.length - 1 - offsetFromEnd], 10);
+              }
+              if (nameCol > numHeaders / 2) {
+                const offsetFromEnd = numHeaders - 1 - nameCol;
+                name = cols[cols.length - 1 - offsetFromEnd];
+              }
+            }
+          }
+
+          if (id && name && !isNaN(id)) {
+            games.push({ id, name, dims: null, source: null });
+          }
+        }
+
+        if (games.length === 0) {
+          throw new Error('No valid games found in CSV. Make sure you used the BGG Export.');
+        }
+
+        showProgress(30, `Found ${games.length} games. Resolving dimensions…`);
+
+        // Fetch dimensions
+        await fetchDimensions(games);
+        resolveDimensions(games);
+
+        // Validate dimensions
+        const invalidGames = games.filter(g => !g.dims || !g.dims.l || !g.dims.w || !g.dims.h);
+        if (invalidGames.length > 0) {
+          invalidGames.forEach(g => {
+            g.dims = { l: 29.5, w: 29.5, h: 7.5 };
+            g.source = 'common';
+          });
+        }
+
+        // Save to cache
+        const username = file.name.replace(/[^a-z0-9]/gi, '').substring(0, 50) || 'imported';
+        saveCache(username, games);
+        updateCacheStatus();
+
+        showProgress(100, `✓ Loaded ${games.length} games!`);
+        setTimeout(hideProgress, 1000);
+        render();
+      } catch (err) {
+        showError('Error loading CSV: ' + err.message);
+        hideProgress();
+        console.error('CSV parse error:', err);
+      }
+    });
+
+    // Auto-load cached data on page load
+    {
+      const cache = loadCache();
+      if (cache && cache.games && cache.games.length > 0) {
+        // Load games from cache and RE-SORT their dimensions (l=largest, w=middle, h=smallest)
+        games = cache.games.map(g => {
+          const dims = g.dims ? sortDims([
+            Number(g.dims.l),
+            Number(g.dims.w),
+            Number(g.dims.h)
+          ]) : null;
+          return { ...g, dims };
+        });
+
+        // Enhance KNOWN_GAME_DIMS with cached games so they persist across reloads
+        games.forEach(g => {
+          if (g.dims && !KNOWN_GAME_DIMS[g.id]) {
+            KNOWN_GAME_DIMS[g.id] = [g.dims.l, g.dims.w, g.dims.h];
+          }
+        });
+
+        // Resolve any missing dimensions
+        resolveDimensions(games);
+
+        render();
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       DEMO MODE
+       ═══════════════════════════════════════════════════ */
+    const DEMO_GAMES = [
+      { id: 174430, name: 'Gloomhaven', dims: { l: 41.0, w: 29.5, h: 17.0 }, source: 'bgg' },
+      { id: 167791, name: 'Terraforming Mars', dims: { l: 29.8, w: 29.8, h: 7.2 }, source: 'bgg' },
+      { id: 169786, name: 'Scythe', dims: { l: 36.5, w: 26.7, h: 9.5 }, source: 'bgg' },
+      { id: 266192, name: 'Wingspan', dims: { l: 29.5, w: 24.0, h: 7.0 }, source: 'bgg' },
+      { id: 224517, name: 'Brass: Birmingham', dims: { l: 30.0, w: 30.0, h: 7.3 }, source: 'bgg' },
+      { id: 162886, name: 'Spirit Island', dims: { l: 29.8, w: 29.8, h: 7.5 }, source: 'bgg' },
+      { id: 9209, name: 'Ticket to Ride', dims: { l: 36.5, w: 26.7, h: 8.0 }, source: 'known' },
+      { id: 13, name: 'Catan', dims: { l: 29.5, w: 29.5, h: 7.5 }, source: 'known' },
+      { id: 68448, name: '7 Wonders', dims: { l: 29.5, w: 29.5, h: 7.5 }, source: 'known' },
+      { id: 230802, name: 'Azul', dims: { l: 25.7, w: 25.7, h: 7.6 }, source: 'bgg' },
+      { id: 312484, name: 'Lost Ruins of Arnak', dims: { l: 30.0, w: 30.0, h: 7.5 }, source: 'bgg' },
+      { id: 342942, name: 'Ark Nova', dims: { l: 29.6, w: 29.6, h: 7.3 }, source: 'bgg' },
+      { id: 316554, name: 'Dune: Imperium', dims: { l: 29.5, w: 29.5, h: 7.0 }, source: 'bgg' },
+      { id: 237182, name: 'Root', dims: { l: 29.2, w: 29.2, h: 7.5 }, source: 'bgg' },
+      { id: 193738, name: 'Great Western Trail', dims: { l: 29.5, w: 29.5, h: 7.5 }, source: 'bgg' },
+      { id: 199792, name: 'Everdell', dims: { l: 26.0, w: 26.0, h: 8.0 }, source: 'bgg' },
+      { id: 291457, name: 'Gloomhaven: Jaws of the Lion', dims: { l: 29.8, w: 29.8, h: 12.0 }, source: 'bgg' },
+      { id: 36218, name: 'Dominion', dims: { l: 29.5, w: 29.5, h: 7.5 }, source: 'known' },
+      { id: 148228, name: 'Splendor', dims: { l: 21.0, w: 21.0, h: 7.5 }, source: 'bgg' },
+      { id: 178900, name: 'Codenames', dims: { l: 24.0, w: 16.0, h: 5.0 }, source: 'bgg' },
+      { id: 173346, name: '7 Wonders Duel', dims: { l: 21.0, w: 15.5, h: 5.0 }, source: 'bgg' },
+      { id: 124361, name: 'Concordia', dims: { l: 30.0, w: 30.0, h: 7.5 }, source: 'bgg' },
+      { id: 126163, name: "Tzolk'in", dims: { l: 29.5, w: 29.5, h: 7.5 }, source: 'bgg' },
+      { id: 24480, name: 'The Crew', dims: { l: 13.0, w: 10.0, h: 4.0 }, source: 'known' },
+      { id: 14996, name: 'Ticket to Ride: Europe', dims: { l: 36.5, w: 26.7, h: 8.0 }, source: 'known' },
+      { id: 233078, name: 'Twilight Imperium (4th Ed.)', dims: { l: 43.0, w: 30.0, h: 13.0 }, source: 'bgg' },
+      { id: 220308, name: 'Gaia Project', dims: { l: 35.6, w: 25.4, h: 8.5 }, source: 'bgg' },
+      { id: 285967, name: 'Cascadia', dims: { l: 26.8, w: 19.0, h: 5.5 }, source: 'bgg' },
+      { id: 205637, name: 'Arkham Horror: TCG', dims: { l: 24.0, w: 17.0, h: 6.0 }, source: 'bgg' },
+      { id: 31260, name: 'Agricola', dims: { l: 31.0, w: 22.0, h: 7.5 }, source: 'bgg' },
+      // Small & card games (to test Double Deep packing)
+      { id: 277085, name: 'Love Letter', dims: { l: 10.0, w: 7.0, h: 3.0 }, source: 'bgg' },
+      { id: 133473, name: 'Sushi Go!', dims: { l: 12.0, w: 9.0, h: 3.5 }, source: 'bgg' },
+      { id: 98778, name: 'Hanabi', dims: { l: 12.0, w: 9.5, h: 3.0 }, source: 'bgg' },
+      { id: 244992, name: 'The Mind', dims: { l: 12.0, w: 9.0, h: 2.5 }, source: 'bgg' },
+      { id: 131357, name: 'Coup', dims: { l: 14.0, w: 10.0, h: 3.5 }, source: 'bgg' },
+      { id: 54043, name: 'Jaipur', dims: { l: 20.0, w: 13.5, h: 5.0 }, source: 'bgg' },
+      { id: 147020, name: 'Star Realms', dims: { l: 10.0, w: 7.0, h: 5.0 }, source: 'bgg' },
+      { id: 154597, name: 'Hive Pocket', dims: { l: 16.0, w: 10.5, h: 4.0 }, source: 'bgg' },
+      { id: 221965, name: 'The Fox in the Forest', dims: { l: 14.0, w: 10.0, h: 3.5 }, source: 'bgg' },
+      { id: 204583, name: 'Kingdomino', dims: { l: 21.0, w: 21.0, h: 5.0 }, source: 'bgg' },
+    ];
+
+    demoBtn.addEventListener('click', () => {
+      hideError();
+      games = DEMO_GAMES.map(g => ({ ...g, dims: { ...g.dims } }));
+      render();
+    });
+
+    $('csvUpload').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      hideError();
+      showProgress(10, 'Parsing CSV…');
+
+      try {
+        let text = await file.text();
+        text = text.replace(/^\uFEFF/, ''); // strip BOM
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) throw new Error("CSV file appears empty or invalid.");
+
+        const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
+        const nameIdx = headers.indexOf('objectname');
+        const idIdx = headers.indexOf('objectid');
+        const subTypeIdx = headers.indexOf('subtype');
+        const itemTypeIdx = headers.indexOf('itemtype');
+
+        if (nameIdx === -1 || idIdx === -1) {
+          throw new Error("Invalid BGG CSV. Missing 'objectname' or 'objectid' column.");
+        }
+
+        const rawGames = [];
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          const cols = parseCsvLine(line);
+          const name = cols[nameIdx];
+          const id = parseInt(cols[idIdx], 10);
+          const subtype = subTypeIdx !== -1 ? cols[subTypeIdx] : 'boardgame';
+          const itemtype = itemTypeIdx !== -1 ? cols[itemTypeIdx] : 'standalone';
+
+          if (id && name && subtype === 'boardgame' && itemtype !== 'expansion') {
+            rawGames.push({ id, name, dims: null, source: null, thumbnail: '' });
+          }
+        }
+
+        if (rawGames.length === 0) throw new Error("No valid board games found in CSV.");
+
+        games = rawGames;
+
+        // Pretend this is a fetched collection now
+        const fakeUsername = "CSV_Import";
+        $('bggUsername').value = fakeUsername;
+        saveCache(fakeUsername, games);
+        updateCacheStatus();
+
+        showProgress(50, `Found ${games.length} games. Fetching dimensions from BGG…`);
+        // fetchBtn removed
+        demoBtn.disabled = true;
+        testBtn.disabled = true;
+        if (resumeBtn) resumeBtn.disabled = true;
+
+        await fetchDimensions(games);
+        resolveDimensions(games);
+        saveCache(fakeUsername, games);
+        updateCacheStatus();
+
+        // Show summary of dimension sources
+        const summary = {
+          bgg: games.filter(g => g.source === 'bgg').length,
+          known: games.filter(g => g.source === 'known').length,
+          custom: games.filter(g => g.source === 'custom').length,
+          common: games.filter(g => g.source === 'common').length
+        };
+        console.log(`\n✅ CSV Import Complete:\n  BGG API: ${summary.bgg}\n  Known DB: ${summary.known}\n  Custom: ${summary.custom}\n  Fallback: ${summary.common}\n`);
+
+        showProgress(100, `Done! (${summary.bgg} from BGG, ${summary.known} from DB, ${summary.common} fallback)`);
+        setTimeout(hideProgress, 800);
+        render();
+
+      } catch (err) {
+        if (games && games.length) {
+          resolveDimensions(games);
+          saveCache("CSV_Import", games);
+          updateCacheStatus();
+          render();
+          showError('Partial sync — ' + err.message + '. Try Resume Sync later.');
+        } else {
+          showError('CSV Error: ' + err.message);
+        }
+        hideProgress();
+      } finally {
+        e.target.value = ''; // Reset file input
+        demoBtn.disabled = false;
+        if (resumeBtn) resumeBtn.disabled = false;
+      }
+    });
+
+    /* ═══════════════════════════════════════════════════
+       CUSTOM OVERRIDES
+       ═══════════════════════════════════════════════════ */
+    function openEditModal(id, name, l, w, h) {
+      $('editGameId').value = id;
+      $('editModalTitle').textContent = `Edit: ${name}`;
+      $('editL').value = l;
+      $('editW').value = w;
+      $('editH').value = h;
+      $('editSizeOverride').value = sizeOverrides[id] || '';
+      $('editModal').classList.add('open');
+    }
+
+    function closeEditModal() {
+      $('editModal').classList.remove('open');
+    }
+
+    function saveEditModal() {
+      const id = parseInt($('editGameId').value, 10);
+      const l = parseFloat($('editL').value);
+      const w = parseFloat($('editW').value);
+      const h = parseFloat($('editH').value);
+      const sizeOverride = $('editSizeOverride').value;
+
+      // Validate dimensions
+      if (!l || !w || !h || l <= 0 || w <= 0 || h <= 0) {
+        showError('All dimensions must be positive numbers greater than 0.');
+        return;
+      }
+      if (l > 200 || w > 200 || h > 200) {
+        showError('Dimensions must be less than 200cm (seems unrealistic for board games).');
+        return;
+      }
+
+      const customDims = JSON.parse(localStorage.getItem('bgsize_customDims') || '{}');
+      customDims[id] = { l, w, h };
+      localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
+
+      // Save size override if set
+      if (sizeOverride) {
+        sizeOverrides[id] = sizeOverride;
+      } else {
+        delete sizeOverrides[id];
+      }
+      saveSizeOverrides();
+
+      // Re-resolve existing games and re-render
+      const game = games.find(g => g.id === id);
+      if (game) {
+        game.dims = sortDims([l, w, h]);
+        game.source = 'custom';
+        saveCache($('bggUsername').value, games);
+        render();
+        hideError();
+      }
+      closeEditModal();
+    }
+
+    function openBatchEditModal() {
+      const fallbackGames = games.filter(g => g.source === 'common');
+      if (fallbackGames.length === 0) {
+        alert('No games need editing! All have dimensions.');
+        return;
+      }
+
+      let html = '';
+      fallbackGames.forEach(g => {
+        html += `
+          <div style="padding:0.75rem; border-bottom:1px solid var(--border); display:grid; grid-template-columns:1fr auto auto auto; gap:0.5rem; align-items:center">
+            <div>
+              <strong style="display:block; font-size:0.9rem">${escHtml(g.name)}</strong>
+              <span style="font-size:0.75rem; color:var(--text-secondary)">ID: ${g.id}</span>
+            </div>
+            <input type="number" step="0.1" min="0.1" class="batch-l" value="29.5" style="width:60px; padding:0.4rem" placeholder="L">
+            <input type="number" step="0.1" min="0.1" class="batch-w" value="29.5" style="width:60px; padding:0.4rem" placeholder="W">
+            <input type="number" step="0.1" min="0.1" class="batch-h" value="7.5" style="width:60px; padding:0.4rem" placeholder="H">
+          </div>
+        `;
+      });
+
+      $('batchEditList').innerHTML = html;
+      $('batchEditModal').classList.add('open');
+    }
+
+    function closeBatchEditModal() {
+      $('batchEditModal').classList.remove('open');
+    }
+
+    function saveBatchEdits() {
+      const fallbackGames = games.filter(g => g.source === 'common');
+      const customDims = JSON.parse(localStorage.getItem('bgsize_customDims') || '{}');
+
+      let saved = 0;
+      fallbackGames.forEach((g, idx) => {
+        const inputs = $('batchEditList').querySelectorAll('div');
+        if (inputs[idx]) {
+          const l = parseFloat(inputs[idx].querySelector('.batch-l')?.value);
+          const w = parseFloat(inputs[idx].querySelector('.batch-w')?.value);
+          const h = parseFloat(inputs[idx].querySelector('.batch-h')?.value);
+
+          if (l > 0 && w > 0 && h > 0 && l <= 200 && w <= 200 && h <= 200) {
+            customDims[g.id] = { l, w, h };
+            g.dims = sortDims([l, w, h]);
+            g.source = 'custom';
+            saved++;
+          }
+        }
+      });
+
+      localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
+      saveCache($('bggUsername').value, games);
+      render();
+      closeBatchEditModal();
+      showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
+      setTimeout(hideError, 2000);
+    }
+
+    /* ═══════════════════════════════════════════════════
+       PHASE 3: UI CONTROLS & EVENTS
+       ═══════════════════════════════════════════════════ */
+    $('searchFilter').addEventListener('input', () => {
+      if (games && games.length) {
+        const minSizeKey = minSizeSelect.value;
+        const minThreshold = MIN_SIZE_THRESHOLDS[minSizeKey];
+        renderTable(lastPacked, orientationSelect.value, minThreshold, minSizeKey);
+      }
+    });
+    $('fitFilter').addEventListener('change', () => {
+      if (games && games.length) {
+        const minSizeKey = minSizeSelect.value;
+        const minThreshold = MIN_SIZE_THRESHOLDS[minSizeKey];
+        renderTable(lastPacked, orientationSelect.value, minThreshold, minSizeKey);
+      }
+    });
+
+    const savedTheme = localStorage.getItem('bgsize_theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+    $('themeToggle').addEventListener('click', () => {
+      let currentTheme = document.documentElement.getAttribute('data-theme');
+      if (!currentTheme) {
+        currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('bgsize_theme', newTheme);
+    });
+
+    /* ═══════════════════════════════════════════════════
+       UTILITY
+       ═══════════════════════════════════════════════════ */
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // Initialise the BGG dimensions panel on load
+    initDimsPanel();
+  </script>
+</body>
+
+</html>
