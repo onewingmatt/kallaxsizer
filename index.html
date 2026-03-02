@@ -3407,6 +3407,20 @@
         resolveDimensions(games);
 
         render();
+
+        // Background: re-fetch dims for any games still unknown (without blocking the render)
+        const unknownGames = games.filter(g => !g.dims || g.source === 'unknown' || g.source === 'common');
+        if (unknownGames.length > 0 && USE_LOCAL_PROXY) {
+          console.log(`🔄 Background fetching dims for ${unknownGames.length} unknown games...`);
+          fetchDimensions(unknownGames).then(() => {
+            resolveDimensions(games);
+            const cacheUser = cache.username || 'imported';
+            saveCache(cacheUser, games);
+            updateCacheStatus();
+            render();
+            console.log(`✅ Background fetch complete.`);
+          });
+        }
       }
     }
 

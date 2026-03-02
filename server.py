@@ -59,9 +59,62 @@ geekdo_session.headers.update({
     'Accept': 'application/json',
 })
 
+def fetch_dims_from_xml(gid):
+    """Try BGG XML API v2, which sometimes includes version dimensions in the thing record."""
+    try:
+        r = geekdo_session.get(
+            f"https://boardgamegeek.com/xmlapi2/thing",
+            params={'id': str(gid), 'versions': '1'},
+            timeout=15
+        )
+        if r.status_code == 429:
+            time.sleep(5)
+            r = geekdo_session.get(
+                f"https://boardgamegeek.com/xmlapi2/thing",
+                params={'id': str(gid), 'versions': '1'},
+                timeout=15
+            )
+        if r.status_code != 200:
+            return None
+
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(r.text)
+        item = root.find('item')
+        if item is None:
+            return None
+
+        best = None
+        for ver in item.findall('.//version/item'):
+            def dim(attr):
+                el = ver.find(f'.//{attr}')
+                if el is not None:
+                    try: return float(el.get('value', 0) or 0)
+                    except: pass
+                return 0.0
+            l, w, d = dim('depth'), dim('width'), dim('length')  # BGG XML uses these
+
+            # Also directly try width/length/depth attributes on the version item
+            if l == 0:
+                try: l = float(ver.get('depth', 0) or 0)
+                except: pass
+            if w == 0:
+                try: w = float(ver.get('width', 0) or 0)
+                except: pass
+            if d == 0:
+                try: d = float(ver.get('length', 0) or 0)
+                except: pass
+
+            if l > 0 and w > 0 and d > 0:
+                dims = sorted([l * 2.54, w * 2.54, d * 2.54], reverse=True)
+                best = {'l': round(dims[0], 1), 'w': round(dims[1], 1), 'h': round(dims[2], 1)}
+                break
+        return best
+    except Exception as e:
+        return None
+
+
 def fetch_dims_for_game(gid):
-    """Fetch physical dimensions for a single game ID."""
-    key = str(gid)
+    """Fetch physical dimensions for a single game ID via geekdo API."""
     try:
         # Step 1: get version IDs
         r1 = geekdo_session.get(
@@ -69,6 +122,13 @@ def fetch_dims_for_game(gid):
             params={'objectid': str(gid), 'objecttype': 'thing', 'nosession': '1'},
             timeout=10
         )
+        if r1.status_code == 429:
+            time.sleep(3)
+            r1 = geekdo_session.get(
+                f"{GEEKDO_BASE}/api/geekitems",
+                params={'objectid': str(gid), 'objecttype': 'thing', 'nosession': '1'},
+                timeout=10
+            )
         if r1.status_code != 200:
             return gid, None
 
@@ -81,12 +141,15 @@ def fetch_dims_for_game(gid):
             vid = ver.get('objectid')
             if not vid:
                 continue
-            time.sleep(0.1)  # polite rate limiting
+            time.sleep(0.05)  # polite rate limiting
             r2 = geekdo_session.get(
                 f"{GEEKDO_BASE}/api/geekitems",
                 params={'objectid': vid, 'objecttype': 'version', 'subtype': 'boardgameversion'},
                 timeout=10
             )
+            if r2.status_code == 429:
+                time.sleep(3)
+                continue
             if r2.status_code != 200:
                 continue
             item = r2.json().get('item', {})
@@ -107,9 +170,11 @@ def fetch_dims_for_ids(game_ids, force=False):
     if force:
         uncached = game_ids
     else:
-        uncached = [gid for gid in game_ids if str(gid) not in dims_cache or dims_cache[str(gid)] is None]
+        # Only retry games that were never attempted (not in cache at all)
+        # Do NOT skip games with None in cache — allow retries for previously-failed lookups
+        uncached = [gid for gid in game_ids if str(gid) not in dims_cache]
 
-        # Return from cache for already-fetched games
+        # Return from cache for already-successfully-fetched games
         for gid in game_ids:
             key = str(gid)
             if key in dims_cache and dims_cache[key] is not None:
@@ -120,15 +185,18 @@ def fetch_dims_for_ids(game_ids, force=False):
 
     print(f"  Fetching dims for {len(uncached)} games via api.geekdo.com (Parallel)...")
     
-    # Using ThreadPoolExecutor for faster fetching
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    # Use fewer workers for large batches to avoid rate limiting
+    workers = 3 if len(uncached) > 100 else 5
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         batch_results = list(executor.map(fetch_dims_for_game, uncached))
         
     for gid, dims in batch_results:
         key = str(gid)
-        dims_cache[key] = dims
         if dims:
+            # Only cache successful results — failures must be retried next time
+            dims_cache[key] = dims
             results[key] = dims
+        # Do NOT write None to cache — leaves the door open for retries
 
     save_dims_cache(dims_cache)
     return results
