@@ -3455,13 +3455,13 @@
         if (lines.length < 2) throw new Error("CSV file appears empty or invalid.");
 
         const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
-        const nameIdx = headers.indexOf('objectname');
-        const idIdx = headers.indexOf('objectid');
+        const nameIdx = headers.findIndex(h => h === 'objectname' || h === 'name');
+        const idIdx = headers.findIndex(h => h === 'objectid' || h === 'id' || h === 'gameid');
         const subTypeIdx = headers.indexOf('subtype');
         const itemTypeIdx = headers.indexOf('itemtype');
 
         if (nameIdx === -1 || idIdx === -1) {
-          throw new Error("Invalid BGG CSV. Missing 'objectname' or 'objectid' column.");
+          throw new Error("Invalid CSV. Missing 'name' or 'objectid' column.");
         }
 
         const rawGames = [];
@@ -3471,10 +3471,10 @@
           const cols = parseCsvLine(line);
           const name = cols[nameIdx];
           const id = parseInt(cols[idIdx], 10);
-          const subtype = subTypeIdx !== -1 ? cols[subTypeIdx] : 'boardgame';
-          const itemtype = itemTypeIdx !== -1 ? cols[itemTypeIdx] : 'standalone';
+          const subtype = subTypeIdx !== -1 ? cols[subTypeIdx].toLowerCase() : 'boardgame';
+          const itemtype = itemTypeIdx !== -1 ? cols[itemTypeIdx].toLowerCase() : 'standalone';
 
-          if (id && name && subtype === 'boardgame' && itemtype !== 'expansion') {
+          if (id && name && subtype === 'boardgame' && itemtype !== 'expansion' && itemtype !== 'boardgameexpansion') {
             rawGames.push({ id, name, dims: null, source: null, thumbnail: '' });
           }
         }
