@@ -1880,8 +1880,8 @@
       const cache = loadCache();
       if (cache && cache.games && cache.games.length > 0) {
         const total = cache.games.length;
-        // Use live games array if loaded (it reflects background fetch results)
-        const liveGames = (window.games && window.games.length === total) ? window.games : cache.games;
+        // Use live games array if loaded (reflects background fetch results)
+        const liveGames = (games && games.length > 0) ? games : cache.games;
         const withBgg = liveGames.filter(g => g.source === 'bgg').length;
         const withKnown = liveGames.filter(g => g.source === 'known').length;
         const withCustom = liveGames.filter(g => g.source === 'custom').length;
