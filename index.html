@@ -2253,9 +2253,7 @@
           g.source = 'known';
           known++;
         } else {
-          const size = COMMON_SIZES.standard;
-          g.dims = { l: size.l, w: size.w, h: size.h };
-          g.source = 'common';
+          // Do not assign a fallback dimension. Leave as unknown.
           fallback++;
         }
       });
@@ -3303,11 +3301,7 @@
         // Validate that all games have dimensions
         const invalidGames = games.filter(g => !g.dims || !g.dims.l || !g.dims.w || !g.dims.h);
         if (invalidGames.length > 0) {
-          console.warn(`${invalidGames.length} games have invalid dimensions, fixing...`);
-          invalidGames.forEach(g => {
-            g.dims = { l: 29.5, w: 29.5, h: 7.5 };
-            g.source = 'common';
-          });
+          console.warn(`${invalidGames.length} games have unknown dimensions.`);
         }
 
         // Save again with dimensions resolved
@@ -3364,17 +3358,26 @@
       if (cache && cache.games && cache.games.length > 0) {
         // Load games from cache and RE-SORT their dimensions (l=largest, w=middle, h=smallest)
         games = cache.games.map(g => {
-          const dims = g.dims ? sortDims([
+          let dims = g.dims ? sortDims([
             Number(g.dims.l),
             Number(g.dims.w),
             Number(g.dims.h)
           ]) : null;
+
+          // SANITIZE OLD BUG: If it exactly matches the buggy 29.5x29.5x7.5 fallback
+          // and it is NOT natively inside the actual KNOWN_GAME_DIMS list, 
+          // then it's a corrupted fake dimension. Nuke it so it stays unknown or refetches.
+          if (dims && dims.l === 29.5 && dims.w === 29.5 && dims.h === 7.5 && !KNOWN_GAME_DIMS[g.id]) {
+            dims = null;
+            g.source = null;
+          }
+
           return { ...g, dims };
         });
 
         // Enhance KNOWN_GAME_DIMS with cached games so they persist across reloads
         games.forEach(g => {
-          if (g.dims && !KNOWN_GAME_DIMS[g.id]) {
+          if (g.dims && g.source !== 'common' && !KNOWN_GAME_DIMS[g.id]) {
             KNOWN_GAME_DIMS[g.id] = [g.dims.l, g.dims.w, g.dims.h];
           }
         });
