@@ -2448,11 +2448,15 @@
               if (!seen.has(key)) { seen.add(key); result.push({ h, w, d }); }
             }
           }
-          result.sort((a, b) => a.h - b.h || a.w - b.w);
+          // Prefer shallowest depth, then smallest height (lay flat)
+          result.sort((a, b) => a.d - b.d || a.h - b.h);
           return result;
         };
 
-        fitting.sort((a, b) => (b.sorted[0] * b.sorted[1]) - (a.sorted[0] * a.sorted[1]));
+        // Sort by largest volume first (3D container packing heuristic)
+        fitting.sort((a, b) => (b.sorted[0] * b.sorted[1] * b.sorted[2]) - (a.sorted[0] * a.sorted[1] * a.sorted[2]));
+
+        // cube structure: { widthUsed, cols: [ { width, depthUsed, stacks: [ { depth, heightUsed, games: [] } ] } ] }
         const cubes = [];
 
         fitting.forEach(g => {
@@ -2465,30 +2469,59 @@
           for (let c = 0; c < cubes.length; c++) {
             const cube = cubes[c];
             for (const o of orientations) {
-              for (let s = 0; s < cube.shelves.length; s++) {
-                const shelf = cube.shelves[s];
-                for (let sl = 0; sl < shelf.slots.length; sl++) {
-                  const slot = shelf.slots[sl];
-                  if (o.h <= shelf.height && o.w <= slot.width && slot.depthUsed + o.d <= TOTAL_DEPTH) {
-                    const score = (shelf.height - o.h) + (slot.width - o.w) + (TOTAL_DEPTH - slot.depthUsed - o.d);
+              for (let ci = 0; ci < cube.cols.length; ci++) {
+                const col = cube.cols[ci];
+
+                // Try to place in an existing stack
+                for (let si = 0; si < col.stacks.length; si++) {
+                  const stack = col.stacks[si];
+                  if (o.w <= col.width && o.d <= stack.depth && stack.heightUsed + o.h <= TOTAL_HEIGHT) {
+                    const score = (TOTAL_HEIGHT - stack.heightUsed - o.h) + (col.width - o.w) * 0.5 + (stack.depth - o.d) * 0.5;
                     if (score < bestScore) {
-                      best = { type: 'slot', c, s, sl, o };
+                      best = { type: 'vertical', c, ci, si, o, widthCost: 0, depthCost: 0 };
                       bestScore = score;
                     }
                   }
                 }
-                if (o.h <= shelf.height && shelf.widthUsed + o.w <= TOTAL_WIDTH) {
-                  const score = 100 + (shelf.height - o.h) + (TOTAL_WIDTH - shelf.widthUsed - o.w);
+
+                // Try to create a new stack in this column
+                if (o.w <= col.width && col.depthUsed + o.d <= TOTAL_DEPTH && o.h <= TOTAL_HEIGHT) {
+                  const score = 100 + (TOTAL_DEPTH - col.depthUsed - o.d) + (col.width - o.w) * 0.5;
                   if (score < bestScore) {
-                    best = { type: 'newslot', c, s, o };
+                    best = { type: 'newstack', c, ci, o, widthCost: 0, depthCost: o.d };
                     bestScore = score;
                   }
                 }
+
+                // Try expanding the column width
+                if (o.w > col.width && cube.widthUsed + (o.w - col.width) <= TOTAL_WIDTH && o.h <= TOTAL_HEIGHT) {
+                  const widthExpansion = o.w - col.width;
+                  for (let si = 0; si < col.stacks.length; si++) {
+                    const stack = col.stacks[si];
+                    if (o.d <= stack.depth && stack.heightUsed + o.h <= TOTAL_HEIGHT) {
+                      const score = 200 + widthExpansion * 2 + (TOTAL_HEIGHT - stack.heightUsed - o.h);
+                      if (score < bestScore) {
+                        best = { type: 'vertical', c, ci, si, o, widthCost: widthExpansion, depthCost: 0 };
+                        bestScore = score;
+                      }
+                    }
+                  }
+
+                  if (col.depthUsed + o.d <= TOTAL_DEPTH) {
+                    const score = 300 + widthExpansion * 2 + (TOTAL_DEPTH - col.depthUsed - o.d);
+                    if (score < bestScore) {
+                      best = { type: 'newstack', c, ci, o, widthCost: widthExpansion, depthCost: o.d };
+                      bestScore = score;
+                    }
+                  }
+                }
               }
-              if (cube.heightUsed + o.h <= TOTAL_HEIGHT) {
-                const score = 500 + (TOTAL_HEIGHT - cube.heightUsed - o.h);
+
+              // Try opening a new column in this cube
+              if (cube.widthUsed + o.w <= TOTAL_WIDTH && o.d <= TOTAL_DEPTH && o.h <= TOTAL_HEIGHT) {
+                const score = 500 + (TOTAL_WIDTH - cube.widthUsed - o.w);
                 if (score < bestScore) {
-                  best = { type: 'newshelf', c, o };
+                  best = { type: 'newcol', c, o, widthCost: o.w, depthCost: o.d };
                   bestScore = score;
                 }
               }
@@ -2497,21 +2530,30 @@
 
           if (best) {
             const cube = cubes[best.c];
-            if (best.type === 'slot') {
-              cube.shelves[best.s].slots[best.sl].depthUsed += best.o.d;
-            } else if (best.type === 'newslot') {
-              cube.shelves[best.s].slots.push({ width: best.o.w, depthUsed: best.o.d });
-              cube.shelves[best.s].widthUsed += best.o.w;
-            } else if (best.type === 'newshelf') {
-              cube.shelves.push({ height: best.o.h, widthUsed: best.o.w, slots: [{ width: best.o.w, depthUsed: best.o.d }] });
-              cube.heightUsed += best.o.h;
+            cube.widthUsed += best.widthCost;
+
+            if (best.type === 'vertical') {
+              const col = cube.cols[best.ci];
+              col.width = Math.max(col.width, best.o.w);
+              col.stacks[best.si].heightUsed += best.o.h;
+            } else if (best.type === 'newstack') {
+              const col = cube.cols[best.ci];
+              col.width = Math.max(col.width, best.o.w);
+              col.depthUsed += best.depthCost;
+              col.stacks.push({ depth: best.o.d, heightUsed: best.o.h });
+            } else if (best.type === 'newcol') {
+              cube.cols.push({
+                width: best.o.w,
+                depthUsed: best.o.d,
+                stacks: [{ depth: best.o.d, heightUsed: best.o.h }]
+              });
             }
             g.cubeIndex = best.c;
           } else {
             const o = orientations[0];
             cubes.push({
-              heightUsed: o.h,
-              shelves: [{ height: o.h, widthUsed: o.w, slots: [{ width: o.w, depthUsed: o.d }] }]
+              widthUsed: o.w,
+              cols: [{ width: o.w, depthUsed: o.d, stacks: [{ depth: o.d, heightUsed: o.h }] }]
             });
             g.cubeIndex = cubes.length - 1;
           }
