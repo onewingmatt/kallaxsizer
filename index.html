@@ -1880,9 +1880,12 @@
       const cache = loadCache();
       if (cache && cache.games && cache.games.length > 0) {
         const total = cache.games.length;
-        const withBgg = cache.games.filter(g => g.source === 'bgg').length;
-        const withKnown = cache.games.filter(g => g.source === 'known').length;
-        const withFallback = total - withBgg - withKnown;
+        // Use live games array if loaded (it reflects background fetch results)
+        const liveGames = (window.games && window.games.length === total) ? window.games : cache.games;
+        const withBgg = liveGames.filter(g => g.source === 'bgg').length;
+        const withKnown = liveGames.filter(g => g.source === 'known').length;
+        const withCustom = liveGames.filter(g => g.source === 'custom').length;
+        const withFallback = total - withBgg - withKnown - withCustom;
         const age = Math.round((Date.now() - cache.ts) / 60000);
         const ageStr = age < 60 ? `${age}m ago` : `${Math.round(age / 60)}h ago`;
 
