@@ -2618,7 +2618,15 @@
       const excludeFallback = document.getElementById('excludeFallback')?.checked;
       const filteredGames = games.filter(g => {
         if (excludedGameIds.has(g.id)) return false;
-        if (excludeFallback && (!g.dims || g.source === 'common' || g.source === 'unknown')) return false;
+        if (!g.dims) return false; // Always exclude null-dims games from packing (would crash)
+        if (excludeFallback && (g.source === 'common' || g.source === 'unknown')) return false;
+        return effectiveLargest(g) >= minThreshold;
+      });
+
+      // For the table, also include unknown-dim games if excludeFallback is off
+      const tableGames = excludeFallback ? filteredGames : games.filter(g => {
+        if (excludedGameIds.has(g.id)) return false;
+        if (!g.dims) return true; // Show unknown games in table
         return effectiveLargest(g) >= minThreshold;
       });
 
@@ -2692,7 +2700,7 @@
       $('statCubes').textContent = totalCubes;
       $('statUnits').textContent = unitsNeeded;
       $('statSpare').textContent = spareCubes;
-      $('gamesCount').textContent = filteredGames.length;
+      $('gamesCount').textContent = tableGames.length;
 
       // Kallax visual — clickable cubes
       renderKallaxVisual(unitsNeeded, kallax, totalCubes, packed, orientation);
@@ -2707,7 +2715,7 @@
       renderTable(packed, orientation, minThreshold, minSizeKey);
 
       // Show batch edit button if there are games with fallback dimensions
-      const fallbackCount = filteredGames.filter(g => g.source === 'common').length;
+      const fallbackCount = tableGames.filter(g => g.source === 'common' || g.source === 'unknown' || !g.dims).length;
       if (fallbackCount > 0) {
         $('batchEditBtn').style.display = 'inline-flex';
         $('batchEditBtn').textContent = `📋 Batch Edit (${fallbackCount})`;
