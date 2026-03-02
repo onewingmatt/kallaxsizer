@@ -384,8 +384,8 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         except ValueError:
             self._json_response(400, {"error": "Invalid IDs"})
             return
-        if len(game_ids) > 500:
-            self._json_response(400, {"error": "Too many IDs (max 500)"})
+        if len(game_ids) > 2000:
+            self._json_response(400, {"error": "Too many IDs (max 2000)"})
             return
         results = fetch_dims_for_ids(game_ids, force)
         self._json_response(200, {"dims": results, "count": len(results), "requested": len(game_ids)})

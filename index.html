@@ -2064,32 +2064,38 @@
         return;
       }
 
-      const ids = needDims.map(g => g.id).join(',');
       const forceParam = forceRefetch ? '&force=1' : '';
-      console.log(`🔍 Fetching dimensions for ${needDims.length} games via local server...`);
+      const CHUNK_SIZE = 400; // Stay well under the server's limit
+      let totalApplied = 0;
 
-      try {
-        const resp = await fetch(`/api/dims?ids=${ids}${forceParam}`);
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          console.warn(`⚠️ /api/dims returned ${resp.status}: ${err.error || ''}`);
-          return;
-        }
-        const data = await resp.json();
-        const dimsMap = data.dims || {};
-        let applied = 0;
-        for (const game of needDims) {
-          const d = dimsMap[String(game.id)];
-          if (d && d.l > 0 && d.w > 0 && d.h > 0) {
-            game.dims = { l: d.l, w: d.w, h: d.h };
-            game.source = 'bgg';
-            applied++;
+      console.log(`🔍 Fetching dimensions for ${needDims.length} games via local server (in chunks of ${CHUNK_SIZE})...`);
+
+      for (let i = 0; i < needDims.length; i += CHUNK_SIZE) {
+        const chunk = needDims.slice(i, i + CHUNK_SIZE);
+        const ids = chunk.map(g => g.id).join(',');
+        try {
+          const resp = await fetch(`/api/dims?ids=${ids}${forceParam}`);
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            console.warn(`⚠️ /api/dims returned ${resp.status}: ${err.error || ''} (chunk ${i}-${i + chunk.length})`);
+            continue;
           }
+          const data = await resp.json();
+          const dimsMap = data.dims || {};
+          for (const game of chunk) {
+            const d = dimsMap[String(game.id)];
+            if (d && d.l > 0 && d.w > 0 && d.h > 0) {
+              game.dims = { l: d.l, w: d.w, h: d.h };
+              game.source = 'bgg';
+              totalApplied++;
+            }
+          }
+          console.log(`  Chunk ${Math.floor(i / CHUNK_SIZE) + 1}: ${data.count} found, ${totalApplied} applied so far`);
+        } catch (e) {
+          console.warn(`⚠️ Could not reach /api/dims: ${e.message}. Is server.py running?`);
         }
-        console.log(`✅ Applied BGG dimensions to ${applied}/${needDims.length} games (${data.count} in response)`);
-      } catch (e) {
-        console.warn(`⚠️ Could not reach /api/dims: ${e.message}. Is server.py running?`);
       }
+      console.log(`✅ Applied BGG dimensions to ${totalApplied}/${needDims.length} games total`);
     }
 
     /* ───────────────────────────────────────────────────────
