@@ -945,6 +945,7 @@
               <option value="horizontal">Horizontal (stacked flat)</option>
               <option value="bestfit" selected>Best Fit (mixed)</option>
               <option value="doubledeep">Double Deep (front & back)</option>
+              <option value="fullystuffed">Fully Stuffed (2D/3D packing)</option>
             </select>
           </div>
           <div class="form-group">
@@ -2429,6 +2430,99 @@
         return { games: [...fitting, ...tooBig], totalCubes: fittingCubes };
       }
 
+      if (orientation === 'fullystuffed') {
+        const TOTAL_DEPTH = KALLAX.depth + DEPTH_OVERHANG_TOLERANCE;
+        const TOTAL_WIDTH = KALLAX.width + WIDTH_OVERHANG_TOLERANCE;
+        const TOTAL_HEIGHT = KALLAX.height + WIDTH_OVERHANG_TOLERANCE;
+
+        const fsOrientations = (dims) => {
+          const seen = new Set();
+          const result = [];
+          for (const [h, w, d] of [
+            [dims[0], dims[1], dims[2]], [dims[0], dims[2], dims[1]],
+            [dims[1], dims[0], dims[2]], [dims[1], dims[2], dims[0]],
+            [dims[2], dims[0], dims[1]], [dims[2], dims[1], dims[0]],
+          ]) {
+            if (h <= TOTAL_HEIGHT && w <= TOTAL_WIDTH && d <= TOTAL_DEPTH) {
+              const key = `${h.toFixed(1)}|${w.toFixed(1)}|${d.toFixed(1)}`;
+              if (!seen.has(key)) { seen.add(key); result.push({ h, w, d }); }
+            }
+          }
+          result.sort((a, b) => a.h - b.h || a.w - b.w);
+          return result;
+        };
+
+        fitting.sort((a, b) => (b.sorted[0] * b.sorted[1]) - (a.sorted[0] * a.sorted[1]));
+        const cubes = [];
+
+        fitting.forEach(g => {
+          const orientations = fsOrientations(g.sorted);
+          if (orientations.length === 0) { g.cubeIndex = -1; g.cubesUsed = 0; return; }
+
+          let best = null;
+          let bestScore = Infinity;
+
+          for (let c = 0; c < cubes.length; c++) {
+            const cube = cubes[c];
+            for (const o of orientations) {
+              for (let s = 0; s < cube.shelves.length; s++) {
+                const shelf = cube.shelves[s];
+                for (let sl = 0; sl < shelf.slots.length; sl++) {
+                  const slot = shelf.slots[sl];
+                  if (o.h <= shelf.height && o.w <= slot.width && slot.depthUsed + o.d <= TOTAL_DEPTH) {
+                    const score = (shelf.height - o.h) + (slot.width - o.w) + (TOTAL_DEPTH - slot.depthUsed - o.d);
+                    if (score < bestScore) {
+                      best = { type: 'slot', c, s, sl, o };
+                      bestScore = score;
+                    }
+                  }
+                }
+                if (o.h <= shelf.height && shelf.widthUsed + o.w <= TOTAL_WIDTH) {
+                  const score = 100 + (shelf.height - o.h) + (TOTAL_WIDTH - shelf.widthUsed - o.w);
+                  if (score < bestScore) {
+                    best = { type: 'newslot', c, s, o };
+                    bestScore = score;
+                  }
+                }
+              }
+              if (cube.heightUsed + o.h <= TOTAL_HEIGHT) {
+                const score = 500 + (TOTAL_HEIGHT - cube.heightUsed - o.h);
+                if (score < bestScore) {
+                  best = { type: 'newshelf', c, o };
+                  bestScore = score;
+                }
+              }
+            }
+          }
+
+          if (best) {
+            const cube = cubes[best.c];
+            if (best.type === 'slot') {
+              cube.shelves[best.s].slots[best.sl].depthUsed += best.o.d;
+            } else if (best.type === 'newslot') {
+              cube.shelves[best.s].slots.push({ width: best.o.w, depthUsed: best.o.d });
+              cube.shelves[best.s].widthUsed += best.o.w;
+            } else if (best.type === 'newshelf') {
+              cube.shelves.push({ height: best.o.h, widthUsed: best.o.w, slots: [{ width: best.o.w, depthUsed: best.o.d }] });
+              cube.heightUsed += best.o.h;
+            }
+            g.cubeIndex = best.c;
+          } else {
+            const o = orientations[0];
+            cubes.push({
+              heightUsed: o.h,
+              shelves: [{ height: o.h, widthUsed: o.w, slots: [{ width: o.w, depthUsed: o.d }] }]
+            });
+            g.cubeIndex = cubes.length - 1;
+          }
+          g.cubesUsed = 1;
+        });
+
+        const fittingCubes = cubes.length;
+        tooBig.forEach(g => { g.cubeIndex = -1; g.cubesUsed = 0; });
+        return { games: [...fitting, ...tooBig], totalCubes: fittingCubes };
+      }
+
       // Standard bin packing (vertical, horizontal, bestfit)
       let currentCube = 0;
       let remaining = packLimit;
@@ -2654,16 +2748,13 @@
       let limit = KALLAX.width;
       let label = 'width';
 
-      if (orientation === 'doubledeep') {
-        // For doubledeep, we don't have the exact column widths here,
-        // but we can estimate the used width by taking the max spine in each column.
-        // Actually, it's better to just show the games without a misleading "remaining width"
-        // since it's a 2D packing.
+      if (orientation === 'doubledeep' || orientation === 'fullystuffed') {
+        const modeLabel = orientation === 'fullystuffed' ? 'Fully Stuffed' : 'Double Deep';
         bd.innerHTML = `
           <div style="background:var(--card-bg);border:2px solid var(--accent);border-radius:8px;padding:1rem;animation:fadeIn 0.2s">
             <h3 style="margin:0 0 0.5rem">📦 Cube #${cubeIndex + 1}</h3>
             <p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 0.75rem">
-              ${gamesInCube.length} game${gamesInCube.length !== 1 ? 's' : ''} (Double Deep)
+              ${gamesInCube.length} game${gamesInCube.length !== 1 ? 's' : ''} (${modeLabel})
             </p>
             <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
               <thead><tr style="border-bottom:1px solid var(--border)">
