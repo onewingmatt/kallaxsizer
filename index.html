@@ -2253,7 +2253,9 @@
           g.source = 'known';
           known++;
         } else {
-          // Do not assign a fallback dimension. Leave as unknown.
+          // No dims known — mark as unknown so the filter can detect them
+          g.dims = null;
+          g.source = 'unknown';
           fallback++;
         }
       });
@@ -2613,7 +2615,7 @@
       const excludeFallback = document.getElementById('excludeFallback')?.checked;
       const filteredGames = games.filter(g => {
         if (excludedGameIds.has(g.id)) return false;
-        if (excludeFallback && g.source === 'common') return false;
+        if (excludeFallback && (!g.dims || g.source === 'common' || g.source === 'unknown')) return false;
         return effectiveLargest(g) >= minThreshold;
       });
 
@@ -3082,6 +3084,7 @@
         // Return the minimum value that satisfies the override category's threshold
         return MIN_SIZE_THRESHOLDS[sizeOverrides[g.id]];
       }
+      if (!g.dims) return 0; // No dims — sort to bottom
       const largest = Math.max(g.dims.l, g.dims.w, g.dims.h);
       // Anything below the card threshold is still treated as a card game
       return Math.max(largest, MIN_SIZE_THRESHOLDS.card);
