@@ -3132,6 +3132,9 @@
     }
 
     function sizeBadges(gameId, dims) {
+      if (!dims) {
+        return `<span class="badge badge-common" style="cursor:pointer" onclick="event.stopPropagation();cycleSizeOverride(${gameId})" title="Unknown size — click to set">Unknown</span>`;
+      }
       const override = sizeOverrides[gameId];
       const largest = Math.max(dims.l, dims.w, dims.h);
       const categories = ['card', 'small', 'medium', 'standard'];
