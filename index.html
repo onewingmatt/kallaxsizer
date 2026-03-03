@@ -2611,7 +2611,15 @@
         resultsArea.classList.remove('visible');
         return;
       }
-      hideError();
+      try {
+        _renderInternal();
+      } catch (err) {
+        console.error('💥 render() crash:', err);
+        showError('Render error: ' + err.message + ' — check console for details');
+      }
+    }
+
+    function _renderInternal() {
       const orientation = orientationSelect.value;
       const kallaxKey = kallaxSizeSelect.value;
       const minSizeKey = minSizeSelect.value;
