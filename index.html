@@ -2316,12 +2316,22 @@
     function packGames(gameList, orientation) {
       const augmented = gameList.map(g => {
         const sorted = [g.dims.l, g.dims.w, g.dims.h].sort((a, b) => b - a);
+        // sorted[0] = largest, sorted[1] = middle, sorted[2] = smallest
+        // Vertical (standing like books): spine = sorted[2] (narrowest face out)
+        // Horizontal (lying flat): height consumed = sorted[1] (game lying wide-face-down, spine height stacks up)
+        // Best Fit: pick the orientation that gives smallest packDim (most games per cube)
+        let packDim;
+        if (orientation === 'horizontal') {
+          packDim = sorted[1]; // middle dim = height of game when lying flat
+        } else {
+          // vertical, bestfit: use shortest dim as spine (most efficient single-deep packing)
+          packDim = sorted[2];
+        }
         const fit = calcFit(g, orientation);
-        const packDim = sorted[2]; // shortest dimension = spine width or stack height
         return { ...g, fit, packDim, sorted };
       });
 
-      const fitting = augmented.filter(g => g.fit !== 'toobig');
+      const fitting = augmented.filter(g => g.fit === 'yes');
       const tooBig = augmented.filter(g => g.fit === 'toobig');
 
       // For doubledeep mode, we can use the full 39cm depth for packing
@@ -3041,7 +3051,11 @@
           const games = cubeMap[ci] || [];
           let spineInfo = '';
           if (orientation !== 'doubledeep') {
-            const used = games.reduce((acc, g) => acc + Math.min(g.dims.l, g.dims.w, g.dims.h), 0);
+            const dims = (g) => [g.dims.l, g.dims.w, g.dims.h].sort((a, b) => a - b);
+            const used = games.reduce((acc, g) => {
+              const d = dims(g);
+              return acc + (orientation === 'horizontal' ? d[1] : d[0]); // d[0]=smallest, d[1]=middle
+            }, 0);
             const KALLAX_WIDTH = 33;
             const rem = KALLAX_WIDTH - used;
             spineInfo = `<div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem">${used.toFixed(1)}cm / ${KALLAX_WIDTH}cm &mdash; <span style="color:${rem < 0 ? 'var(--red,#ef4444)' : 'var(--text-secondary)'}">${rem.toFixed(1)}cm free</span></div>`;
