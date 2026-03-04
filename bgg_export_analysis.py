@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""
+Check what data BGG collection export actually includes.
+We know the export exists, but does it include dimensions?
+"""
+
+# Based on BGG's documented collection export format:
+# https://boardgamegeek.com/forums/thread/1976640
+
+print("BGG Collection Export Options:")
+print("=" * 70)
+print()
+print("1. CSV EXPORT (what we've been trying)")
+print("   - Location: Your Collection > Columns/Settings")
+print("   - Includes: ID, Name, Year, Rating, Status, Plays, etc.")
+print("   - Problem: Dimensions NOT included in standard export")
+print()
+print("2. XML EXPORT (old API)")
+print("   - Location: GeekLists or via URL parameter")
+print("   - Format: BGG provides XML of your collection")
+print("   - Problem: Also blocked by Cloudflare if automated")
+print()
+print("3. JSON EXPORT (newer)")
+print("   - Location: Possibly in advanced collection settings")
+print("   - Problem: Unknown if dimensions included")
+print()
+print("=" * 70)
+print()
+print("What we could try:")
+print()
+print("OPTION A: Check BGG's collection page HTML directly")
+print("  - When you visit YOUR collection on BGG, the dimensions ARE displayed")
+print("  - The data might be embedded in the page as JSON in a <script> tag")
+print("  - We could try parsing that instead of navigating to individual game pages")
+print()
+print("OPTION B: Check if BGG has a 'Print' or 'Table View' export")
+print("  - Some sites have PDF/print exports that include all field")
+print()
+print("OPTION C: Check if BGG collection has an inventory/details CSV")
+print("  - Whether there's a 'details' export separate from basic export")
+print()
+print("=" * 70)
+print()
+print("ACTION: Can you check your BGG collection settings and tell us:")
+print("  1. When you click 'Export Collection', what options appear?")
+print("  2. Does the CSV export include a 'Dimensions' or 'Size' column?")
+print("  3. Is there a 'Detailed Export' or 'Full Export' option?")
+print()
+print("In the meantime, we can try parsing your collection page HTML")
+print("if you can provide it (copy from view-source or export as HTML).")

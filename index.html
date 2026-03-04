@@ -842,40 +842,45 @@
     <div class="card" id="loginCard">
       <h2>� Import Your Collection</h2>
       <div style="padding:1rem; background:var(--alt-bg); border-radius:8px; margin-bottom:1rem">
-        <p style="margin:0 0 0.75rem; font-weight:bold; color:var(--text)">Step 1: Open Your BGG Collection</p>
         <div class="form-group" style="margin-bottom:0.75rem">
           <label for="bggUsername">Enter your BGG username:</label>
           <div style="display:flex; gap:0.5rem">
             <input type="text" id="bggUsername" placeholder="e.g. onewingmatt"
               style="flex:1; padding:0.5rem; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text)">
             <button type="button" id="fetchBtn" class="btn btn-primary" style="white-space:nowrap">📥 Fetch
-              Automatically</button>
-            <button type="button" id="openCollectionBtn" class="btn btn-secondary" style="white-space:nowrap"
-              title="If automatic fetch fails, open BGG to get CSV">🔗 Open BGG</button>
+              Collection</button>
           </div>
         </div>
-        <p style="margin:0.5rem 0 0; font-size:0.9rem; color:var(--text-secondary)">This opens your collection where you
-          can download the CSV.</p>
-      </div>
-
-      <div style="padding:1rem; background:var(--alt-bg); border-radius:8px; margin-bottom:1rem">
-        <p style="margin:0 0 0.75rem; font-weight:bold; color:var(--text)">Step 2: Download & Upload CSV</p>
-        <ul style="margin:0.5rem 0 0; padding-left:1.5rem; line-height:1.6">
-          <li>Click the <strong>⋯ menu</strong> on your collection page</li>
-          <li>Select <strong>"Download board games as CSV"</strong></li>
-          <li>Then use the 📁 button below to upload the file</li>
-        </ul>
+        <p style="margin:0.5rem 0 0; font-size:0.85rem; color:var(--text-secondary)">
+          Automatically imports your owned games and fetches box dimensions from BGG.
+        </p>
       </div>
 
       <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem">
-        <label for="csvUpload" class="btn btn-primary"
-          style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; margin:0; flex:1; min-width:200px"
-          title="Import collection CSV from BGG">📁 CSV
-          Upload</label>
-        <input type="file" id="csvUpload" accept=".csv" style="display:none">
         <button type="button" class="btn btn-secondary" id="demoBtn" style="flex:1; min-width:200px">🎲 Demo
           Mode</button>
       </div>
+
+      <details style="margin-bottom:1rem">
+        <summary style="cursor:pointer; font-size:0.9rem; color:var(--text-secondary); padding:0.5rem 0">
+          📁 <strong>CSV Import</strong> — if automatic fetch doesn’t work
+        </summary>
+        <div style="padding:0.75rem 1rem; background:var(--alt-bg); border-radius:8px; margin-top:0.5rem">
+          <ol style="margin:0; padding-left:1.5rem; line-height:1.8; font-size:0.9rem">
+            <li>Click <strong>Open BGG</strong> to go to your collection page</li>
+            <li>Click the <strong>⋮ menu</strong> → <strong>"Download board games as CSV"</strong></li>
+            <li>Upload the file below</li>
+          </ol>
+          <div style="display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap:wrap">
+            <button type="button" id="openCollectionBtn" class="btn btn-secondary" style="white-space:nowrap"
+              title="Open your BGG collection page to download CSV">🔗 Open BGG</button>
+            <label for="csvUpload" class="btn btn-primary"
+              style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; margin:0"
+              title="Import collection CSV from BGG">📁 Upload CSV</label>
+            <input type="file" id="csvUpload" accept=".csv" style="display:none">
+          </div>
+        </div>
+      </details>
 
       <!-- Dynamic BGG dims panel – populated by initDimsPanel() -->
       <div id="bgDimsPanel" style="margin:1rem 0"></div>
