@@ -3,99 +3,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Kallax Sizer</title>
-  <style>
-    @media print {
-      body {
-        background: white !important;
-        color: black !important;
-      }
-
-      .header,
-      .container>div:not(#resultsArea),
-      .results-area>div:not(#shelfRosterCard),
-      .btn {
-        display: none !important;
-      }
-
-      #shelfRosterCard {
-        display: block !important;
-        border: none !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: transparent !important;
-      }
-
-      /* Allow the container to use the full page width */
-      .container {
-        max-width: none !important;
-        width: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-
-      /* Force the roster body open and visible during print */
-      #shelfRosterBody {
-        display: block !important;
-      }
-
-      /* Compactness styling for print */
-      .print-roster-grid {
-        display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
-        gap: 0.25rem !important;
-      }
-
-      .print-roster-grid>div {
-        padding: 0.25rem !important;
-        border: 1px solid #ccc !important;
-        background: transparent !important;
-        page-break-inside: avoid;
-      }
-
-      #shelfRosterBody .game-row {
-        padding: 0.1rem 0 !important;
-        font-size: 0.75rem !important;
-        line-height: 1.1 !important;
-      }
-
-      #shelfRosterBody .game-row span {
-        font-size: 0.75rem !important;
-      }
-
-      #shelfRosterCard h2 {
-        font-size: 1.2rem !important;
-        margin-bottom: 0.5rem !important;
-      }
-
-      #shelfRosterCount,
-      #shelfRosterChevron {
-        font-size: 0.8rem !important;
-      }
-
-      #shelfRosterCard {
-        position: static;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        border: none;
-        box-shadow: none;
-        background: transparent !important;
-      }
-
-      .btn {
-        display: none !important;
-      }
-
-      .print-only-filter-header {
-        display: block !important;
-      }
-    }
-  </style>
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kallax Sizer</title>
+  <title>Kallax Konfigurator</title>
   <meta name="description"
     content="Calculate how many IKEA Kallax shelves you need for your board game collection using BoardGameGeek data.">
   <style>
@@ -489,6 +398,12 @@
       color: #475569;
     }
 
+    .badge-missing {
+      background: #fecaca;
+      color: #7f1d1d;
+      font-weight: 600;
+    }
+
     .badge-fit-yes {
       background: #dcfce7;
       color: #166534;
@@ -534,6 +449,12 @@
       :root:not([data-theme="light"]) .badge-common {
         background: #334155;
         color: #94a3b8;
+      }
+
+      :root:not([data-theme="light"]) .badge-missing {
+        background: #7f1d1d;
+        color: #fca5a5;
+        font-weight: 600;
       }
 
       :root:not([data-theme="light"]) .badge-fit-yes {
@@ -827,7 +748,7 @@
   <header class="header">
     <div style="display:flex; justify-content:space-between; align-items:flex-start">
       <div>
-        <h1 style="margin:0">📦 Kallax Sizer <span class="badge badge-beta">BETA</span></h1>
+        <h1 style="margin:0">📦 Kallax Konfigurator <span class="badge badge-beta">BETA</span></h1>
         <p style="margin:0.5rem 0 0">How many IKEA Kallax shelves do you need for your board game collection?</p>
       </div>
       <button id="themeToggle" class="btn btn-secondary"
@@ -840,47 +761,71 @@
   <div class="container">
     <!-- Login / Fetch Section -->
     <div class="card" id="loginCard">
-      <h2>� Import Your Collection</h2>
+      <h2>📥 Import Your Collection</h2>
       <div style="padding:1rem; background:var(--alt-bg); border-radius:8px; margin-bottom:1rem">
+        <p style="margin:0 0 0.75rem; font-weight:bold; color:var(--text)">Step 1: Fetch Your Collection</p>
         <div class="form-group" style="margin-bottom:0.75rem">
           <label for="bggUsername">Enter your BGG username:</label>
           <div style="display:flex; gap:0.5rem">
             <input type="text" id="bggUsername" placeholder="e.g. onewingmatt"
               style="flex:1; padding:0.5rem; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text)">
-            <button type="button" id="fetchBtn" class="btn btn-primary" style="white-space:nowrap">📥 Fetch
+            <button type="button" id="openCollectionBtn" class="btn btn-primary" style="white-space:nowrap">📥 Fetch
               Collection</button>
           </div>
         </div>
-        <p style="margin:0.5rem 0 0; font-size:0.85rem; color:var(--text-secondary)">
-          Automatically imports your owned games and fetches box dimensions from BGG.
-        </p>
+        <p style="margin:0.5rem 0 0; font-size:0.9rem; color:var(--text-secondary)">✅ <strong>Recommended:</strong>
+          Automatically imports your full collection directly from BGG.</p>
       </div>
+
+      <details style="margin-bottom:1rem">
+        <summary
+          style="cursor:pointer; font-size:0.9rem; color:var(--text-secondary); user-select:none; padding:0.4rem 0">⚠️
+          Having trouble fetching? Use CSV import instead</summary>
+        <div style="padding:1rem; background:var(--alt-bg); border-radius:8px; margin-top:0.75rem">
+          <p style="margin:0 0 0.5rem; font-size:0.9rem; color:var(--text-secondary)">If auto-fetch fails, manually
+            export your collection from BGG:</p>
+          <ul style="margin:0.5rem 0 1rem; padding-left:1.5rem; line-height:1.6; font-size:0.9rem">
+            <li>Go to your <a href="#" onclick="event.preventDefault(); openBggCollection(bggUsername.value)"
+                style="color:var(--accent)">BGG collection</a></li>
+            <li>Click the <strong>⋯ menu</strong> → <strong>"Download board games as CSV"</strong></li>
+            <li>Upload the file using one of the buttons below</li>
+          </ul>
+          <div style="display:flex; gap:0.75rem; flex-wrap:wrap">
+            <label for="csvUpload" class="btn btn-secondary"
+              style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; margin:0; flex:1; min-width:160px"
+              title="Import collection CSV from BGG">📁 CSV Upload</label>
+            <input type="file" id="csvUpload" accept=".csv" style="display:none">
+            <button type="button" class="btn btn-secondary" id="csvPasteBtn" style="flex:1; min-width:160px">📋 Paste
+              CSV</button>
+          </div>
+        </div>
+      </details>
 
       <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem">
         <button type="button" class="btn btn-secondary" id="demoBtn" style="flex:1; min-width:200px">🎲 Demo
           Mode</button>
+        <button type="button" class="btn btn-success" id="resumeBtn" style="flex:1; min-width:200px; display:none">▶️
+          Resume</button>
       </div>
 
-      <details style="margin-bottom:1rem">
-        <summary style="cursor:pointer; font-size:0.9rem; color:var(--text-secondary); padding:0.5rem 0">
-          📁 <strong>CSV Import</strong> — if automatic fetch doesn’t work
-        </summary>
-        <div style="padding:0.75rem 1rem; background:var(--alt-bg); border-radius:8px; margin-top:0.5rem">
-          <ol style="margin:0; padding-left:1.5rem; line-height:1.8; font-size:0.9rem">
-            <li>Click <strong>Open BGG</strong> to go to your collection page</li>
-            <li>Click the <strong>⋮ menu</strong> → <strong>"Download board games as CSV"</strong></li>
-            <li>Upload the file below</li>
-          </ol>
-          <div style="display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap:wrap">
-            <button type="button" id="openCollectionBtn" class="btn btn-secondary" style="white-space:nowrap"
-              title="Open your BGG collection page to download CSV">🔗 Open BGG</button>
-            <label for="csvUpload" class="btn btn-primary"
-              style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; margin:0"
-              title="Import collection CSV from BGG">📁 Upload CSV</label>
-            <input type="file" id="csvUpload" accept=".csv" style="display:none">
+      <!-- CSV Paste Modal -->
+      <div class="modal-overlay" id="csvPasteModal">
+        <div class="modal-content" style="max-width:800px; max-height:90vh">
+          <h3 style="margin-top:0; margin-bottom:1rem">Paste Your Collection CSV</h3>
+          <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:1rem">
+            Paste the CSV content you downloaded from your BGG collection below.
+            Make sure it has "Game ID" and "Game Name" columns.
+          </p>
+          <textarea id="csvPasteArea"
+            style="width:100%; height:300px; padding:0.75rem; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font-family:monospace; font-size:0.85rem; resize:vertical"
+            placeholder="Paste CSV content here..."></textarea>
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem">
+            <button type="button" class="btn" onclick="closeCsvPasteModal()"
+              style="background:transparent;color:var(--text);border:1px solid var(--border)">Cancel</button>
+            <button type="button" class="btn" onclick="processCsvPaste()">Load Collection</button>
           </div>
         </div>
-      </details>
+      </div>
 
       <!-- Dynamic BGG dims panel – populated by initDimsPanel() -->
       <div id="bgDimsPanel" style="margin:1rem 0"></div>
@@ -900,48 +845,15 @@
       <!-- Config Bar -->
       <div class="card">
         <h2>⚙️ Kallax Configuration</h2>
-        <div class="config-bar" style="align-items:flex-start">
-          <div class="form-group" style="flex:1.5">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem">
-              <label style="margin:0">Shelf Configuration</label>
-              <div style="display:flex;gap:0.25rem" id="shelfModeToggle">
-                <button class="btn btn-primary" id="btnModeBasic" style="padding:0.15rem 0.5rem;font-size:0.75rem"
-                  onclick="setShelfMode('basic')">Basic</button>
-                <button class="btn btn-secondary" id="btnModeAdv" style="padding:0.15rem 0.5rem;font-size:0.75rem"
-                  onclick="setShelfMode('advanced')">Advanced</button>
-              </div>
-            </div>
-
-            <!-- Basic Mode: Single Size -->
-            <div id="basicShelfSelect">
-              <select id="kallaxSize" style="width:100%">
-                <option value="2x2">2×2 (4 cubes)</option>
-                <option value="2x4" selected>2×4 (8 cubes)</option>
-                <option value="4x4">4×4 (16 cubes)</option>
-                <option value="5x5">5×5 (25 cubes)</option>
-              </select>
-            </div>
-
-            <!-- Advanced Mode: Custom List -->
-            <div id="advShelfSelect"
-              style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.5rem">
-              <div id="myShelvesList" style="display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.5rem">
-                <!-- Javascript will inject custom shelves here -->
-              </div>
-              <div style="display:flex;gap:0.4rem">
-                <select id="addShelfSize" style="flex:1;padding:0.3rem;font-size:0.85rem">
-                  <option value="1x4">1×4 (4 cubes)</option>
-                  <option value="2x2">2×2 (4 cubes)</option>
-                  <option value="2x4" selected>2×4 (8 cubes)</option>
-                  <option value="3x3">3×3 (9 cubes)</option>
-                  <option value="3x4">3×4 (12 cubes)</option>
-                  <option value="4x4">4×4 (16 cubes)</option>
-                  <option value="5x5">5×5 (25 cubes)</option>
-                </select>
-                <button class="btn btn-secondary" style="padding:0.3rem 0.6rem;font-size:0.85rem"
-                  onclick="addCustomShelf()">+ Add</button>
-              </div>
-            </div>
+        <div class="config-bar">
+          <div class="form-group">
+            <label for="kallaxSize">Kallax Size</label>
+            <select id="kallaxSize">
+              <option value="2x2">2×2 (4 cubes)</option>
+              <option value="2x4" selected>2×4 (8 cubes)</option>
+              <option value="4x4">4×4 (16 cubes)</option>
+              <option value="5x5">5×5 (25 cubes)</option>
+            </select>
           </div>
           <div class="form-group">
             <label for="orientation">Storage Orientation</label>
@@ -950,7 +862,6 @@
               <option value="horizontal">Horizontal (stacked flat)</option>
               <option value="bestfit" selected>Best Fit (mixed)</option>
               <option value="doubledeep">Double Deep (front & back)</option>
-              <option value="fullystuffed">Fully Stuffed (2D/3D packing)</option>
             </select>
           </div>
           <div class="form-group">
@@ -962,12 +873,6 @@
               <option value="medium">Medium boxes & up (≥25cm)</option>
               <option value="standard">Standard boxes & up (≥29cm)</option>
             </select>
-          </div>
-          <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;padding-top:0.25rem">
-            <input type="checkbox" id="excludeFallback"
-              style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
-            <label for="excludeFallback" style="margin:0;cursor:pointer;font-size:0.9rem">Exclude games with unknown
-              dimensions</label>
           </div>
         </div>
       </div>
@@ -1010,10 +915,6 @@
           <h2 style="margin:0">📋 Shelf Roster</h2>
           <div style="display:flex;align-items:center;gap:0.75rem">
             <span style="font-size:0.8rem;color:var(--text-secondary)" id="shelfRosterCount"></span>
-            <button class="btn btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.8rem"
-              onclick="event.stopPropagation();exportRoster()">📥 Export</button>
-            <button class="btn btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.8rem"
-              onclick="event.stopPropagation();window.print()">🖨️ Print</button>
             <span id="shelfRosterChevron"
               style="font-size:1.1rem;color:var(--text-secondary);transition:transform 0.2s">▶</span>
           </div>
@@ -1061,9 +962,21 @@
 
   <!-- Edit Modal -->
   <div class="modal-overlay" id="editModal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width:600px; max-height:85vh; overflow-y:auto">
       <h3 style="margin-top:0; margin-bottom:1rem" id="editModalTitle">Edit Dimensions</h3>
       <input type="hidden" id="editGameId">
+
+      <!-- BGG Versions Section -->
+      <div id="editVersionsSection" style="margin-bottom:1.5rem; display:none">
+        <label
+          style="font-size:0.8rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; display:block; margin-bottom:0.5rem">
+          📦 Available Versions from BGG
+        </label>
+        <div id="editVersionsList"
+          style="border:1px solid var(--border); border-radius:6px; max-height:200px; overflow-y:auto; background:var(--bg-card-alt)">
+        </div>
+      </div>
+
       <div class="form-group">
         <label>Length (cm)</label>
         <input type="number" step="0.1" id="editL" min="0.1" max="200" required>
@@ -1365,7 +1278,7 @@
       96913: [29.7, 29.7, 8.3], // Lancaster
       98229: [29.97, 29.97, 7.62], // Pictomania
       98778: [9.5, 9.5, 3.0], // Hanabi
-      104955: [31, 22.5, 5], // Antike Duellum
+      104955: [22.86, 31.24, 5.59], // Antike Duellum
       106645: [29.72, 29.72, 7.11], // Ticket to Ride Map Collection 2: India & Switzerland
       113289: [10.16, 10.16, 9.91], // Snake Oil
       118048: [20.0, 20.0, 4.5], // Targi
@@ -1650,23 +1563,12 @@
        ═══════════════════════════════════════════════════ */
     const $ = (id) => document.getElementById(id);
     const bggUsername = $('bggUsername');
-    const fetchBtn = $('fetchBtn');
     const openCollectionBtn = $('openCollectionBtn');
     const resumeBtn = $('resumeBtn');
     const demoBtn = $('demoBtn');
+    const csvPasteBtn = $('csvPasteBtn');
     const csvUpload = $('csvUpload');
     const errorMsg = $('errorMsg');
-
-    if (fetchBtn) {
-      fetchBtn.addEventListener('click', () => {
-        const username = bggUsername.value.trim();
-        if (!username) {
-          showError('Please enter a BGG username');
-          return;
-        }
-        doFetch(username);
-      });
-    }
     const progressArea = $('progressArea');
     const progressFill = $('progressFill');
     const progressStatus = $('progressStatus');
@@ -1727,97 +1629,7 @@
       }
     }
 
-    let shelfMode = 'basic'; // 'basic' | 'advanced'
-    let customShelves = []; // array of e.g. '2x4', '5x5'
-
-    function loadCustomShelves() {
-      try {
-        const rawMode = localStorage.getItem('bgsize_shelfMode');
-        if (rawMode) shelfMode = rawMode;
-
-        const rawList = localStorage.getItem('bgsize_customShelves');
-        customShelves = rawList ? JSON.parse(rawList) : [];
-      } catch (e) {
-        console.warn('Custom shelves corrupted:', e);
-        shelfMode = 'basic';
-        customShelves = [];
-      }
-      setShelfMode(shelfMode, false);
-      renderCustomShelves();
-    }
-
-    function saveCustomShelves() {
-      try {
-        localStorage.setItem('bgsize_shelfMode', shelfMode);
-        localStorage.setItem('bgsize_customShelves', JSON.stringify(customShelves));
-      } catch (e) {
-        console.warn('Could not save custom shelves:', e);
-      }
-    }
-
-    function setShelfMode(mode, triggerRender = true) {
-      shelfMode = mode;
-
-      const btnBasic = $('btnModeBasic');
-      const btnAdv = $('btnModeAdv');
-      const basicPanel = $('basicShelfSelect');
-      const advPanel = $('advShelfSelect');
-
-      if (mode === 'basic') {
-        btnBasic.classList.replace('btn-secondary', 'btn-primary');
-        btnAdv.classList.replace('btn-primary', 'btn-secondary');
-        basicPanel.style.display = 'block';
-        advPanel.style.display = 'none';
-      } else {
-        btnAdv.classList.replace('btn-secondary', 'btn-primary');
-        btnBasic.classList.replace('btn-primary', 'btn-secondary');
-        advPanel.style.display = 'block';
-        basicPanel.style.display = 'none';
-      }
-
-      saveCustomShelves();
-      if (triggerRender && games.length) {
-        // Debounce render if required, but forcing synchronous here is fine
-        render();
-      }
-    }
-
-    function addCustomShelf() {
-      const select = $('addShelfSize');
-      customShelves.push(select.value);
-      saveCustomShelves();
-      renderCustomShelves();
-      if (games.length) render();
-    }
-
-    function removeCustomShelf(index) {
-      customShelves.splice(index, 1);
-      saveCustomShelves();
-      renderCustomShelves();
-      if (games.length) render();
-    }
-
-    function renderCustomShelves() {
-      const listEl = $('myShelvesList');
-      if (customShelves.length === 0) {
-        listEl.innerHTML = `<div style="font-size:0.8rem;color:var(--text-secondary);text-align:center;padding:0.5rem">No shelves added yet.</div>`;
-        return;
-      }
-
-      listEl.innerHTML = customShelves.map((shelf, idx) => {
-        const parts = shelf.split('x').map(Number);
-        const cubes = parts[0] * parts[1];
-        return `
-          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-card);padding:0.25rem 0.5rem;border-radius:4px;border:1px solid var(--border)">
-             <div style="font-size:0.85rem"><strong>${shelf.replace('x', '×')}</strong> <span style="color:var(--text-secondary)">(${cubes} cubes)</span></div>
-             <button onclick="removeCustomShelf(${idx})" class="btn" style="background:transparent;color:var(--red,#ef4444);padding:0;border:none;cursor:pointer" title="Remove shelf">✕</button>
-          </div>
-        `;
-      }).join('');
-    }
-
     loadSizeOverrides();
-    loadCustomShelves();
 
     function clearCache() {
       localStorage.removeItem(CACHE_KEY);
@@ -1830,7 +1642,7 @@
         return;
       }
 
-      const missing = games.filter(g => g.source === 'common');
+      const missing = games.filter(g => g.source === 'missing' || !g.dims);
       if (missing.length === 0) {
         alert('All games have dimensions! No exports needed.');
         return;
@@ -1885,12 +1697,9 @@
       const cache = loadCache();
       if (cache && cache.games && cache.games.length > 0) {
         const total = cache.games.length;
-        // Use live games array if loaded (reflects background fetch results)
-        const liveGames = (games && games.length > 0) ? games : cache.games;
-        const withBgg = liveGames.filter(g => g.source === 'bgg').length;
-        const withKnown = liveGames.filter(g => g.source === 'known').length;
-        const withCustom = liveGames.filter(g => g.source === 'custom').length;
-        const withFallback = total - withBgg - withKnown - withCustom;
+        const withBgg = cache.games.filter(g => g.source === 'bgg').length;
+        const withKnown = cache.games.filter(g => g.source === 'known').length;
+        const withFallback = total - withBgg - withKnown;
         const age = Math.round((Date.now() - cache.ts) / 60000);
         const ageStr = age < 60 ? `${age}m ago` : `${Math.round(age / 60)}h ago`;
 
@@ -1904,7 +1713,7 @@
 
         cacheStatusEl.innerHTML = statusHTML;
         cacheStatusEl.style.display = 'block';
-        if (resumeBtn) resumeBtn.style.display = 'inline-flex';
+        resumeBtn.style.display = 'inline-flex';
 
         setTimeout(() => {
           const link = $('clearCacheLink');
@@ -1918,7 +1727,7 @@
         });
       } else {
         cacheStatusEl.style.display = 'none';
-        if (resumeBtn) resumeBtn.style.display = 'none';
+        resumeBtn.style.display = 'none';
       }
     }
 
@@ -1946,7 +1755,7 @@
     /* ═══════════════════════════════════════════════════
        NETWORKING — LOCAL PROXY OR CORS PROXY FALLBACK
        ═══════════════════════════════════════════════════ */
-    const USE_LOCAL_PROXY = true; // Always true — app is always served by server.py
+    const USE_LOCAL_PROXY = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     const BGG_BASE = 'https://boardgamegeek.com';
 
     // External CORS proxies (fallback when not using server.py)
@@ -2002,20 +1811,32 @@
       if (!username || username.trim().length === 0) {
         throw new Error('Username cannot be empty');
       }
-
-      // When running via local server, use our Playwright scraper
-      if (USE_LOCAL_PROXY) {
-        const resp = await fetch(`/api/collection?username=${encodeURIComponent(username)}`);
-        if (!resp.ok) {
-          const data = await resp.json().catch(() => ({}));
-          throw new Error(data.error || `Server error: ${resp.status}`);
-        }
-        const data = await resp.json();
-        return data.games || [];
+      if (username.length > 50) {
+        throw new Error('Username seems too long (max 50 chars)');
       }
 
-      // Fallback (if not running via server.py)
-      throw new Error("Automatic collection fetch requires running the app via server.py.");
+      // Fetch from BGG's public collection API via our server proxy
+      const response = await fetch(`/api/collection?username=${encodeURIComponent(username)}`);
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(err.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.games || !Array.isArray(data.games)) {
+        throw new Error('Invalid response format from server');
+      }
+
+      // Convert BGG format to our standard format
+      return data.games.map(game => ({
+        id: game.id.toString(),
+        name: game.name,
+        l: null,
+        w: null,
+        h: null
+      }));
     }
 
     function parseCollectionXml(xml) {
@@ -2054,7 +1875,7 @@
       return result;
     }
 
-    async function fetchDimensions(gameList, forceRefetch = false) {
+    async function fetchDimensions(gameList) {
       // When running via local server (localhost), fetch dimensions via /api/dims
       // The server handles BGG auth (JWT Bearer token) and disk caching.
       if (!USE_LOCAL_PROXY) {
@@ -2062,45 +1883,38 @@
         return;
       }
 
-      // Only fetch for games that don't already have bgg-sourced dims, unless forced
-      const needDims = forceRefetch ? gameList : gameList.filter(g => !g.dims || g.source !== 'bgg');
+      // Only fetch for games that don't already have bgg-sourced dims
+      const needDims = gameList.filter(g => !g.dims || g.source !== 'bgg');
       if (needDims.length === 0) {
         console.log(`✓ All games already have BGG dimensions`);
         return;
       }
 
-      const forceParam = forceRefetch ? '&force=1' : '';
-      const CHUNK_SIZE = 400; // Stay well under the server's limit
-      let totalApplied = 0;
+      const ids = needDims.map(g => g.id).join(',');
+      console.log(`🔍 Fetching dimensions for ${needDims.length} games via local server...`);
 
-      console.log(`🔍 Fetching dimensions for ${needDims.length} games via local server (in chunks of ${CHUNK_SIZE})...`);
-
-      for (let i = 0; i < needDims.length; i += CHUNK_SIZE) {
-        const chunk = needDims.slice(i, i + CHUNK_SIZE);
-        const ids = chunk.map(g => g.id).join(',');
-        try {
-          const resp = await fetch(`/api/dims?ids=${ids}${forceParam}`);
-          if (!resp.ok) {
-            const err = await resp.json().catch(() => ({}));
-            console.warn(`⚠️ /api/dims returned ${resp.status}: ${err.error || ''} (chunk ${i}-${i + chunk.length})`);
-            continue;
-          }
-          const data = await resp.json();
-          const dimsMap = data.dims || {};
-          for (const game of chunk) {
-            const d = dimsMap[String(game.id)];
-            if (d && d.l > 0 && d.w > 0 && d.h > 0) {
-              game.dims = { l: d.l, w: d.w, h: d.h };
-              game.source = 'bgg';
-              totalApplied++;
-            }
-          }
-          console.log(`  Chunk ${Math.floor(i / CHUNK_SIZE) + 1}: ${data.count} found, ${totalApplied} applied so far`);
-        } catch (e) {
-          console.warn(`⚠️ Could not reach /api/dims: ${e.message}. Is server.py running?`);
+      try {
+        const resp = await fetch(`/api/dims?ids=${ids}`);
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          console.warn(`⚠️ /api/dims returned ${resp.status}: ${err.error || ''}`);
+          return;
         }
+        const data = await resp.json();
+        const dimsMap = data.dims || {};
+        let applied = 0;
+        for (const game of needDims) {
+          const d = dimsMap[String(game.id)];
+          if (d && d.l > 0 && d.w > 0 && d.h > 0) {
+            game.dims = { l: d.l, w: d.w, h: d.h };
+            game.source = 'bgg';
+            applied++;
+          }
+        }
+        console.log(`✅ Applied BGG dimensions to ${applied}/${needDims.length} games (${data.count} in response)`);
+      } catch (e) {
+        console.warn(`⚠️ Could not reach /api/dims: ${e.message}. Is server.py running?`);
       }
-      console.log(`✅ Applied BGG dimensions to ${totalApplied}/${needDims.length} games total`);
     }
 
     /* ───────────────────────────────────────────────────────
@@ -2167,8 +1981,7 @@
         console.log('No games loaded yet — dims will fetch on next collection load');
         return;
       }
-      // Pass forceRefetch = true
-      await fetchDimensions(games, true);
+      await fetchDimensions(games);
       resolveDimensions(games);
       const cache = loadCache();
       if (cache) saveCache(cache.username, games);
@@ -2267,9 +2080,9 @@
           g.source = 'known';
           known++;
         } else {
-          // No dims known — mark as unknown so the filter can detect them
+          // Leave dims as null and mark as 'missing' - user must use modal to find dimensions
           g.dims = null;
-          g.source = 'unknown';
+          g.source = 'missing';
           fallback++;
         }
       });
@@ -2316,17 +2129,12 @@
     function packGames(gameList, orientation) {
       const augmented = gameList.map(g => {
         const sorted = [g.dims.l, g.dims.w, g.dims.h].sort((a, b) => b - a);
-        // sorted[0] = largest, sorted[1] = middle, sorted[2] = smallest (thinnest)
-        // Vertical (standing like books): spine width = sorted[2] (narrowest edge faces out), packs into 33cm width
-        // Horizontal (lying flat, stacked): each game's thickness = sorted[2] (box lying flat), stacks bottom-to-top into 33cm height
-        // Best Fit: uses sorted[2] (most efficient — same as vertical since it's the smallest dimension)
-        // All three modes pack by the same smallest dimension; they differ physically but not mathematically in 1D bin-packing
-        const packDim = sorted[2]; // thickness/spine = smallest dim, regardless of standing vs stacking flat
         const fit = calcFit(g, orientation);
+        const packDim = sorted[2]; // shortest dimension = spine width or stack height
         return { ...g, fit, packDim, sorted };
       });
 
-      const fitting = augmented.filter(g => g.fit === 'yes');
+      const fitting = augmented.filter(g => g.fit !== 'toobig');
       const tooBig = augmented.filter(g => g.fit === 'toobig');
 
       // For doubledeep mode, we can use the full 39cm depth for packing
@@ -2449,141 +2257,6 @@
         return { games: [...fitting, ...tooBig], totalCubes: fittingCubes };
       }
 
-      if (orientation === 'fullystuffed') {
-        const TOTAL_DEPTH = KALLAX.depth + DEPTH_OVERHANG_TOLERANCE;
-        const TOTAL_WIDTH = KALLAX.width + WIDTH_OVERHANG_TOLERANCE;
-        const TOTAL_HEIGHT = KALLAX.height + WIDTH_OVERHANG_TOLERANCE;
-
-        const fsOrientations = (dims) => {
-          const seen = new Set();
-          const result = [];
-          for (const [h, w, d] of [
-            [dims[0], dims[1], dims[2]], [dims[0], dims[2], dims[1]],
-            [dims[1], dims[0], dims[2]], [dims[1], dims[2], dims[0]],
-            [dims[2], dims[0], dims[1]], [dims[2], dims[1], dims[0]],
-          ]) {
-            if (h <= TOTAL_HEIGHT && w <= TOTAL_WIDTH && d <= TOTAL_DEPTH) {
-              const key = `${h.toFixed(1)}|${w.toFixed(1)}|${d.toFixed(1)}`;
-              if (!seen.has(key)) { seen.add(key); result.push({ h, w, d }); }
-            }
-          }
-          // Prefer shallowest depth, then smallest height (lay flat)
-          result.sort((a, b) => a.d - b.d || a.h - b.h);
-          return result;
-        };
-
-        // Sort by largest volume first (3D container packing heuristic)
-        fitting.sort((a, b) => (b.sorted[0] * b.sorted[1] * b.sorted[2]) - (a.sorted[0] * a.sorted[1] * a.sorted[2]));
-
-        // cube structure: { widthUsed, cols: [ { width, depthUsed, stacks: [ { depth, heightUsed, games: [] } ] } ] }
-        const cubes = [];
-
-        fitting.forEach(g => {
-          const orientations = fsOrientations(g.sorted);
-          if (orientations.length === 0) { g.cubeIndex = -1; g.cubesUsed = 0; return; }
-
-          let best = null;
-          let bestScore = Infinity;
-
-          for (let c = 0; c < cubes.length; c++) {
-            const cube = cubes[c];
-            for (const o of orientations) {
-              for (let ci = 0; ci < cube.cols.length; ci++) {
-                const col = cube.cols[ci];
-
-                // Try to place in an existing stack
-                for (let si = 0; si < col.stacks.length; si++) {
-                  const stack = col.stacks[si];
-                  if (o.w <= col.width && o.d <= stack.depth && stack.heightUsed + o.h <= TOTAL_HEIGHT) {
-                    const score = (TOTAL_HEIGHT - stack.heightUsed - o.h) + (col.width - o.w) * 0.5 + (stack.depth - o.d) * 0.5;
-                    if (score < bestScore) {
-                      best = { type: 'vertical', c, ci, si, o, widthCost: 0, depthCost: 0 };
-                      bestScore = score;
-                    }
-                  }
-                }
-
-                // Try to create a new stack in this column
-                if (o.w <= col.width && col.depthUsed + o.d <= TOTAL_DEPTH && o.h <= TOTAL_HEIGHT) {
-                  const score = 100 + (TOTAL_DEPTH - col.depthUsed - o.d) + (col.width - o.w) * 0.5;
-                  if (score < bestScore) {
-                    best = { type: 'newstack', c, ci, o, widthCost: 0, depthCost: o.d };
-                    bestScore = score;
-                  }
-                }
-
-                // Try expanding the column width
-                if (o.w > col.width && cube.widthUsed + (o.w - col.width) <= TOTAL_WIDTH && o.h <= TOTAL_HEIGHT) {
-                  const widthExpansion = o.w - col.width;
-                  for (let si = 0; si < col.stacks.length; si++) {
-                    const stack = col.stacks[si];
-                    if (o.d <= stack.depth && stack.heightUsed + o.h <= TOTAL_HEIGHT) {
-                      const score = 200 + widthExpansion * 2 + (TOTAL_HEIGHT - stack.heightUsed - o.h);
-                      if (score < bestScore) {
-                        best = { type: 'vertical', c, ci, si, o, widthCost: widthExpansion, depthCost: 0 };
-                        bestScore = score;
-                      }
-                    }
-                  }
-
-                  if (col.depthUsed + o.d <= TOTAL_DEPTH) {
-                    const score = 300 + widthExpansion * 2 + (TOTAL_DEPTH - col.depthUsed - o.d);
-                    if (score < bestScore) {
-                      best = { type: 'newstack', c, ci, o, widthCost: widthExpansion, depthCost: o.d };
-                      bestScore = score;
-                    }
-                  }
-                }
-              }
-
-              // Try opening a new column in this cube
-              if (cube.widthUsed + o.w <= TOTAL_WIDTH && o.d <= TOTAL_DEPTH && o.h <= TOTAL_HEIGHT) {
-                const score = 500 + (TOTAL_WIDTH - cube.widthUsed - o.w);
-                if (score < bestScore) {
-                  best = { type: 'newcol', c, o, widthCost: o.w, depthCost: o.d };
-                  bestScore = score;
-                }
-              }
-            }
-          }
-
-          if (best) {
-            const cube = cubes[best.c];
-            cube.widthUsed += best.widthCost;
-
-            if (best.type === 'vertical') {
-              const col = cube.cols[best.ci];
-              col.width = Math.max(col.width, best.o.w);
-              col.stacks[best.si].heightUsed += best.o.h;
-            } else if (best.type === 'newstack') {
-              const col = cube.cols[best.ci];
-              col.width = Math.max(col.width, best.o.w);
-              col.depthUsed += best.depthCost;
-              col.stacks.push({ depth: best.o.d, heightUsed: best.o.h });
-            } else if (best.type === 'newcol') {
-              cube.cols.push({
-                width: best.o.w,
-                depthUsed: best.o.d,
-                stacks: [{ depth: best.o.d, heightUsed: best.o.h }]
-              });
-            }
-            g.cubeIndex = best.c;
-          } else {
-            const o = orientations[0];
-            cubes.push({
-              widthUsed: o.w,
-              cols: [{ width: o.w, depthUsed: o.d, stacks: [{ depth: o.d, heightUsed: o.h }] }]
-            });
-            g.cubeIndex = cubes.length - 1;
-          }
-          g.cubesUsed = 1;
-        });
-
-        const fittingCubes = cubes.length;
-        tooBig.forEach(g => { g.cubeIndex = -1; g.cubesUsed = 0; });
-        return { games: [...fitting, ...tooBig], totalCubes: fittingCubes };
-      }
-
       // Standard bin packing (vertical, horizontal, bestfit)
       let currentCube = 0;
       let remaining = packLimit;
@@ -2613,7 +2286,6 @@
        ═══════════════════════════════════════════════════ */
     // Store packed data globally for cube click handlers
     let lastPacked = [];
-    let lastExtraShelvesText = '';
 
     function render() {
       if (!games || games.length === 0) {
@@ -2621,15 +2293,7 @@
         resultsArea.classList.remove('visible');
         return;
       }
-      try {
-        _renderInternal();
-      } catch (err) {
-        console.error('💥 render() crash:', err);
-        showError('Render error: ' + err.message + ' — check console for details');
-      }
-    }
-
-    function _renderInternal() {
+      hideError();
       const orientation = orientationSelect.value;
       const kallaxKey = kallaxSizeSelect.value;
       const minSizeKey = minSizeSelect.value;
@@ -2639,19 +2303,8 @@
 
 
       // Filter games by minimum size (uses effective largest: respects overrides, bumps tiny→card)
-      const excludeFallback = document.getElementById('excludeFallback')?.checked;
       const filteredGames = games.filter(g => {
-        if (excludedGameIds.has(g.id)) return false;
-        if (!g.dims) return false; // Always exclude null-dims games from packing (would crash)
-        if (excludeFallback && (g.source === 'common' || g.source === 'unknown')) return false;
-        return effectiveLargest(g) >= minThreshold;
-      });
-
-      // For the table, also include unknown-dim games if excludeFallback is off
-      const tableGames = excludeFallback ? filteredGames : games.filter(g => {
-        if (excludedGameIds.has(g.id)) return false;
-        if (!g.dims) return true; // Show unknown games in table
-        return effectiveLargest(g) >= minThreshold;
+        return effectiveLargest(g) >= minThreshold && !excludedGameIds.has(g.id);
       });
 
       const sizeExcludedCount = games.filter(g => !excludedGameIds.has(g.id)).length - filteredGames.length;
@@ -2665,55 +2318,11 @@
         g.fit = calcFit(g, orientation);
       });
 
-      let maxAllowedCubes = Infinity;
-      let unitsNeeded = 0;
-      let spareCubes = 0;
-      let isAdvanced = shelfMode === 'advanced';
-
-      if (isAdvanced) {
-        maxAllowedCubes = customShelves.reduce((sum, shelf) => {
-          const parts = shelf.split('x').map(Number);
-          return sum + (parts[0] * parts[1]);
-        }, 0);
-      }
-
-      let { games: packed, totalCubes } = packGames(filteredGames, orientation);
-
-      let extraCubesNeeded = 0;
-      let extraShelvesText = '';
-
-      if (isAdvanced) {
-        // We know exactly how many units/slots we have
-        unitsNeeded = customShelves.length;
-        const totalSlots = maxAllowedCubes;
-        spareCubes = Math.max(0, totalSlots - totalCubes);
-
-        // Manually move overflow games if they exceed our allowed custom cubes
-        if (totalCubes > maxAllowedCubes) {
-          extraCubesNeeded = totalCubes - maxAllowedCubes;
-          const kallaxUnitSpace = kallax.cubes; // using the generic config size for the estimate
-          const extraShelvesNeeded = Math.ceil(extraCubesNeeded / kallaxUnitSpace);
-          extraShelvesText = ` — Requires ${extraCubesNeeded} more cubes (approx. ${extraShelvesNeeded}x ${kallaxKey} shelves)`;
-
-          packed.forEach(g => {
-            if (g.cubeIndex >= maxAllowedCubes) {
-              g.cubeIndex = -1;
-              g.cubesUsed = 0;
-            }
-          });
-          // Update the renderable total cubes to not draw infinite cubes
-          totalCubes = maxAllowedCubes;
-        }
-
-      } else {
-        // Derive mathematical infinite units
-        unitsNeeded = Math.ceil(totalCubes / kallax.cubes);
-        const totalSlots = unitsNeeded * kallax.cubes;
-        spareCubes = Math.max(0, totalSlots - totalCubes);
-      }
-
+      const { games: packed, totalCubes } = packGames(filteredGames, orientation);
       lastPacked = packed;
-      lastExtraShelvesText = extraShelvesText;
+      const unitsNeeded = Math.ceil(totalCubes / kallax.cubes);
+      const totalSlots = unitsNeeded * kallax.cubes;
+      const spareCubes = totalSlots - totalCubes;
 
       // Stats
       let statsLabel = filteredGames.length;
@@ -2724,7 +2333,7 @@
       $('statCubes').textContent = totalCubes;
       $('statUnits').textContent = unitsNeeded;
       $('statSpare').textContent = spareCubes;
-      $('gamesCount').textContent = tableGames.length;
+      $('gamesCount').textContent = filteredGames.length;
 
       // Kallax visual — clickable cubes
       renderKallaxVisual(unitsNeeded, kallax, totalCubes, packed, orientation);
@@ -2739,7 +2348,7 @@
       renderTable(packed, orientation, minThreshold, minSizeKey);
 
       // Show batch edit button if there are games with fallback dimensions
-      const fallbackCount = tableGames.filter(g => g.source === 'common' || g.source === 'unknown' || !g.dims).length;
+      const fallbackCount = filteredGames.filter(g => g.source === 'missing' || !g.dims).length;
       if (fallbackCount > 0) {
         $('batchEditBtn').style.display = 'inline-flex';
         $('batchEditBtn').textContent = `📋 Batch Edit (${fallbackCount})`;
@@ -2764,34 +2373,20 @@
       });
 
       let cubeIdx = 0;
-      let shelvesToDraw = [];
-
-      if (shelfMode === 'advanced') {
-        shelvesToDraw = customShelves.map(s => {
-          const parts = s.split('x').map(Number);
-          return { cols: parts[0], cubes: parts[0] * parts[1], label: `${s.replace('x', '×')} Shelf` };
-        });
-      } else {
-        for (let i = 0; i < units; i++) {
-          shelvesToDraw.push({ cols: kallax.cols, cubes: kallax.cubes, label: `Unit ${i + 1}` });
-        }
-      }
-
-      for (let u = 0; u < shelvesToDraw.length; u++) {
-        const shape = shelvesToDraw[u];
+      for (let u = 0; u < units; u++) {
         const unitDiv = document.createElement('div');
         unitDiv.className = 'kallax-unit';
 
         const label = document.createElement('div');
         label.className = 'kallax-label';
-        label.textContent = shape.label;
+        label.textContent = `Unit ${u + 1}`;
         unitDiv.appendChild(label);
 
         const grid = document.createElement('div');
         grid.className = 'kallax-grid';
-        grid.style.gridTemplateColumns = `repeat(${shape.cols}, 36px)`;
+        grid.style.gridTemplateColumns = `repeat(${kallax.cols}, 36px)`;
 
-        for (let c = 0; c < shape.cubes; c++) {
+        for (let c = 0; c < kallax.cubes; c++) {
           const ci = cubeIdx;
           const isFilled = ci < filledCount;
           const cube = document.createElement('div');
@@ -2825,13 +2420,16 @@
       let limit = KALLAX.width;
       let label = 'width';
 
-      if (orientation === 'doubledeep' || orientation === 'fullystuffed') {
-        const modeLabel = orientation === 'fullystuffed' ? 'Fully Stuffed' : 'Double Deep';
+      if (orientation === 'doubledeep') {
+        // For doubledeep, we don't have the exact column widths here,
+        // but we can estimate the used width by taking the max spine in each column.
+        // Actually, it's better to just show the games without a misleading "remaining width"
+        // since it's a 2D packing.
         bd.innerHTML = `
           <div style="background:var(--card-bg);border:2px solid var(--accent);border-radius:8px;padding:1rem;animation:fadeIn 0.2s">
             <h3 style="margin:0 0 0.5rem">📦 Cube #${cubeIndex + 1}</h3>
             <p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 0.75rem">
-              ${gamesInCube.length} game${gamesInCube.length !== 1 ? 's' : ''} (${modeLabel})
+              ${gamesInCube.length} game${gamesInCube.length !== 1 ? 's' : ''} (Double Deep)
             </p>
             <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
               <thead><tr style="border-bottom:1px solid var(--border)">
@@ -2891,97 +2489,6 @@
       $('cubeBreakdown').innerHTML = '';
     }
 
-    function exportRoster() {
-      if (!lastPacked || lastPacked.length === 0) return;
-
-      const kallaxSelect = $('kallaxSize');
-      const orientationSelect = $('orientation');
-      const minSizeSelect = $('minSize');
-
-      const kallaxTxt = kallaxSelect.options[kallaxSelect.selectedIndex].text;
-      const orientTxt = orientationSelect.options[orientationSelect.selectedIndex].text;
-      const minSizeTxt = minSizeSelect.options[minSizeSelect.selectedIndex].text;
-
-      const cubeMap = {};
-      const tooBig = [];
-      lastPacked.forEach(g => {
-        if (g.cubeIndex < 0) { tooBig.push(g); return; }
-        if (!cubeMap[g.cubeIndex]) cubeMap[g.cubeIndex] = [];
-        if (!cubeMap[g.cubeIndex].find(x => x.id === g.id)) cubeMap[g.cubeIndex].push(g);
-      });
-
-      const cubeNums = Object.keys(cubeMap).map(Number).sort((a, b) => a - b);
-      let text = "Kallax Shelf Roster\n====================\n\n";
-      text += `Filters Applied:\n`;
-      text += `- Shelf Mode: ${shelfMode === 'advanced' ? 'Advanced (Custom Mix)' : 'Basic (Single Size)'}\n`;
-      text += `- Shelf Size: ${shelfMode === 'advanced' ? customShelves.join(', ') : kallaxTxt}\n`;
-      text += `- Orientation: ${orientTxt}\n`;
-      text += `- Minimum Game Size: ${minSizeTxt}\n\n`;
-      text += `--------------------\n\n`;
-
-      let currentCubeExported = 0;
-      let totalCubesToExport = cubeNums.length;
-
-      let shelvesToExport = [];
-      if (shelfMode === 'advanced') {
-        shelvesToExport = customShelves.map(s => {
-          const parts = s.split('x').map(Number);
-          return { cubes: parts[0] * parts[1], label: `${s.replace('x', '×')} Shelf` };
-        });
-      } else {
-        const kallax = KALLAX_SIZES[kallaxSizeSelect.value];
-        const unitsNeeded = Math.ceil(totalCubesToExport / kallax.cubes);
-        for (let i = 0; i < unitsNeeded; i++) {
-          shelvesToExport.push({ cubes: kallax.cubes, label: `Unit ${i + 1}` });
-        }
-      }
-
-      for (let s = 0; s < shelvesToExport.length; s++) {
-        const shelf = shelvesToExport[s];
-        const cubesInThisShelf = [];
-
-        for (let c = 0; c < shelf.cubes; c++) {
-          if (currentCubeExported < totalCubesToExport) {
-            cubesInThisShelf.push(currentCubeExported);
-            currentCubeExported++;
-          }
-        }
-
-        if (cubesInThisShelf.length === 0) break;
-
-        text += `${shelf.label}\n`;
-        text += `${"=".repeat(shelf.label.length)}\n\n`;
-
-        cubesInThisShelf.forEach(ci => {
-          text += `Cube #${ci + 1}\n`;
-          text += `--------\n`;
-          const gamesInCube = cubeMap[ci] || [];
-          gamesInCube.forEach(g => {
-            text += `  - ${g.name} (${g.dims.l}x${g.dims.w}x${g.dims.h} cm)\n`;
-          });
-          text += `\n`;
-        });
-      }
-
-      if (tooBig.length) {
-        text += `Does Not Fit / No Free Space${lastExtraShelvesText}\n`;
-        text += `----------------------------\n`;
-        tooBig.forEach(g => {
-          text += `  - ${g.name} (${g.dims.l}x${g.dims.w}x${g.dims.h} cm)\n`;
-        });
-      }
-
-      const blob = new Blob([text], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "shelf_roster.txt";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
     function toggleShelfRoster() {
       const body = $('shelfRosterBody');
       const chevron = $('shelfRosterChevron');
@@ -3010,100 +2517,39 @@
       const cubeNums = Object.keys(cubeMap).map(Number).sort((a, b) => a - b);
       $('shelfRosterCount').textContent = `${cubeNums.length} cube${cubeNums.length !== 1 ? 's' : ''}, ${packed.filter(g => g.cubeIndex >= 0).length} games`;
 
-      let rosterHTML = '';
-      let currentCubeRendered = 0;
-      let totalCubesToRender = cubeNums.length;
-
-      let shelvesToDraw = [];
-      if (shelfMode === 'advanced') {
-        shelvesToDraw = customShelves.map(s => {
-          const parts = s.split('x').map(Number);
-          return { cubes: parts[0] * parts[1], label: `${s.replace('x', '×')} Shelf` };
-        });
-      } else {
-        const kallax = KALLAX_SIZES[kallaxSizeSelect.value];
-        const unitsNeeded = Math.ceil(totalCubesToRender / kallax.cubes);
-        for (let i = 0; i < unitsNeeded; i++) {
-          shelvesToDraw.push({ cubes: kallax.cubes, label: `Unit ${i + 1}` });
+      const cubeGrid = cubeNums.map(ci => {
+        const games = cubeMap[ci];
+        let spineInfo = '';
+        if (orientation !== 'doubledeep') {
+          const used = games.reduce((s, g) => s + Math.min(g.dims.l, g.dims.w, g.dims.h), 0);
+          const rem = KALLAX.width - used;
+          spineInfo = `<div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem">${used.toFixed(1)}cm / ${KALLAX.width}cm &mdash; <span style="color:${rem < 0 ? 'var(--red,#ef4444)' : 'var(--text-secondary)'}">${rem.toFixed(1)}cm free</span></div>`;
         }
-      }
-
-      for (let s = 0; s < shelvesToDraw.length; s++) {
-        const shelf = shelvesToDraw[s];
-        const cubesInThisShelf = [];
-
-        // Grab the next N cubes from our global pool that belong to this shelf
-        for (let c = 0; c < shelf.cubes; c++) {
-          if (currentCubeRendered < totalCubesToRender) {
-            cubesInThisShelf.push(currentCubeRendered);
-            currentCubeRendered++;
-          }
-        }
-
-        if (cubesInThisShelf.length === 0) break;
-
-        const cubeGrid = cubesInThisShelf.map(ci => {
-          const games = cubeMap[ci] || [];
-          let spineInfo = '';
-          if (orientation !== 'doubledeep') {
-            const used = games.reduce((acc, g) => acc + Math.min(g.dims.l, g.dims.w, g.dims.h), 0);
-            const KALLAX_WIDTH = 33;
-            const rem = KALLAX_WIDTH - used;
-            spineInfo = `<div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem">${used.toFixed(1)}cm / ${KALLAX_WIDTH}cm &mdash; <span style="color:${rem < 0 ? 'var(--red,#ef4444)' : 'var(--text-secondary)'}">${rem.toFixed(1)}cm free</span></div>`;
-          }
-          const rows = games.map(g => `
-            <div class="game-row" onclick="openEditModal(${g.id},'${escHtml(g.name).replace(/'/g, "\\'")}',${g.dims.l},${g.dims.w},${g.dims.h})" title="Click to edit" style="display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.85rem">
-              <span>${escHtml(g.name)}</span>
-              <span style="color:var(--text-secondary);white-space:nowrap;margin-left:0.5rem">${g.dims.l}×${g.dims.w}×${g.dims.h}</span>
-            </div>`).join('');
-          return `<div style="background:var(--bg-card-alt,var(--card-bg));border:1px solid var(--border);border-radius:8px;padding:0.75rem;min-width:0">
-            <div style="font-weight:700;margin-bottom:0.35rem">📦 Cube #${ci + 1} <span style="font-weight:400;color:var(--text-secondary);font-size:0.8rem">(${games.length} game${games.length !== 1 ? 's' : ''})</span></div>
-            ${spineInfo}${rows}
-          </div>`;
-        }).join('');
-
-        rosterHTML += `
-          <div style="margin-bottom: 2rem;">
-            <h3 style="margin-top:0;margin-bottom:0.75rem;border-bottom:1px solid var(--border);padding-bottom:0.25rem">${shelf.label}</h3>
-            <div class="print-roster-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem">
-              ${cubeGrid}
-            </div>
-          </div>
-        `;
-      }
+        const rows = games.map(g => `
+          <div class="game-row" onclick="openEditModal(${g.id},'${escHtml(g.name).replace(/'/g, "\\'")}',${g.dims.l},${g.dims.w},${g.dims.h})" title="Click to edit" style="display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.85rem">
+            <span>${escHtml(g.name)}</span>
+            <span style="color:var(--text-secondary);white-space:nowrap;margin-left:0.5rem">${g.dims.l}×${g.dims.w}×${g.dims.h}</span>
+          </div>`).join('');
+        return `<div style="background:var(--bg-card-alt,var(--card-bg));border:1px solid var(--border);border-radius:8px;padding:0.75rem;min-width:0">
+          <div style="font-weight:700;margin-bottom:0.35rem">📦 Cube #${ci + 1} <span style="font-weight:400;color:var(--text-secondary);font-size:0.8rem">(${games.length} game${games.length !== 1 ? 's' : ''})</span></div>
+          ${spineInfo}${rows}
+        </div>`;
+      }).join('');
 
       const tooBigSection = tooBig.length ? `
-        <div style="margin-top:1rem;background:var(--bg-card);padding:1rem;border:1px solid var(--border);border-radius:8px;">
-          <h3 style="margin-top:0;font-weight:700;color:var(--red,#ef4444);margin-bottom:0.5rem">✗ Doesn't Fit / No Free Space<span style="font-weight:400;color:currentColor;font-size:0.85rem">${lastExtraShelvesText}</span> (${tooBig.length} games)</h3>
+        <div style="margin-top:1rem">
+          <div style="font-weight:700;color:var(--red,#ef4444);margin-bottom:0.5rem">✗ Doesn't Fit (${tooBig.length})</div>
           <div style="display:flex;flex-wrap:wrap;gap:0.4rem">${tooBig.map(g => `<span style="background:var(--bg-card-alt,var(--card-bg));border:1px solid var(--border);border-radius:4px;padding:0.2rem 0.5rem;font-size:0.82rem">${escHtml(g.name)}</span>`).join('')}</div>
         </div>` : '';
 
-      const kallaxSelect = $('kallaxSize');
-      const orientationSelect = $('orientation');
-      const minSizeSelect = $('minSize');
-
-      const kallaxTxt = kallaxSelect.options[kallaxSelect.selectedIndex].text;
-      const orientTxt = orientationSelect.options[orientationSelect.selectedIndex].text;
-      const minSizeTxt = minSizeSelect.options[minSizeSelect.selectedIndex].text;
-
-      const printHeader = `
-        <div style="display:none" class="print-only-filter-header">
-           <p style="margin-bottom: 0.25rem;"><strong>Filters Applied:</strong></p>
-           <ul style="font-size:0.85rem; margin-top:0; margin-bottom: 1rem; padding-left: 1.5rem;">
-             <li><strong>Shelf Size:</strong> ${kallaxTxt}</li>
-             <li><strong>Orientation:</strong> ${orientTxt}</li>
-             <li><strong>Minimum Game Size:</strong> ${minSizeTxt}</li>
-           </ul>
-        </div>
-      `;
-
-      body.innerHTML = `${printHeader}${rosterHTML}${tooBigSection}`;
+      body.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem">${cubeGrid}</div>${tooBigSection}`;
     }
 
     function sourceBadge(src) {
       if (src === 'custom') return '<span class="badge badge-custom">✏️ Custom Size</span>';
       if (src === 'bgg') return '<span class="badge badge-bgg">BGG Version</span>';
       if (src === 'known') return '<span class="badge badge-known">Known Size</span>';
+      if (src === 'missing') return '<span class="badge badge-missing">❓ No Data - Click to Find</span>';
       return '<span class="badge badge-common">Common Size</span>';
     }
 
@@ -3115,11 +2561,11 @@
     // Returns the effective largest dimension used for size filtering.
     // Respects overrides; bumps genuinely tiny games (< card threshold) up to card.
     function effectiveLargest(g) {
+      if (!g.dims) return -1; // Games with no dimensions should be filtered out
       if (sizeOverrides[g.id]) {
         // Return the minimum value that satisfies the override category's threshold
         return MIN_SIZE_THRESHOLDS[sizeOverrides[g.id]];
       }
-      if (!g.dims) return 0; // No dims — sort to bottom
       const largest = Math.max(g.dims.l, g.dims.w, g.dims.h);
       // Anything below the card threshold is still treated as a card game
       return Math.max(largest, MIN_SIZE_THRESHOLDS.card);
@@ -3143,8 +2589,9 @@
 
     function sizeBadges(gameId, dims) {
       if (!dims) {
-        return `<span class="badge badge-common" style="cursor:pointer" onclick="event.stopPropagation();cycleSizeOverride(${gameId})" title="Unknown size — click to set">Unknown</span>`;
+        return `<span class="badge badge-missing" title="No dimensions available">?</span>`;
       }
+
       const override = sizeOverrides[gameId];
       const largest = Math.max(dims.l, dims.w, dims.h);
       const categories = ['card', 'small', 'medium', 'standard'];
@@ -3200,7 +2647,10 @@
         let va, vb;
         switch (sortCol) {
           case 'name': va = a.name.toLowerCase(); vb = b.name.toLowerCase(); break;
-          case 'dims': va = a.dims ? a.dims.l * a.dims.w * a.dims.h : 0; vb = b.dims ? b.dims.l * b.dims.w * b.dims.h : 0; break;
+          case 'dims':
+            va = a.dims ? (a.dims.l * a.dims.w * a.dims.h) : -1;
+            vb = b.dims ? (b.dims.l * b.dims.w * b.dims.h) : -1;
+            break;
           case 'source': va = a.source; vb = b.source; break;
           case 'fit': va = a.fit; vb = b.fit; break;
           case 'cubes': va = a.cubeIndex; vb = b.cubeIndex; break;
@@ -3213,7 +2663,7 @@
 
       const tbody = $('gamesBody');
       tbody.innerHTML = displayGames.map(g => {
-        const passesFilter = effectiveLargest(g) >= minThreshold;
+        const passesFilter = !g.dims || effectiveLargest(g) >= minThreshold;
         const isExcluded = excludedGameIds.has(g.id);
         const isIncluded = passesFilter && !isExcluded;
         const packedGame = packedMap[g.id];
@@ -3222,14 +2672,32 @@
         if (isIncluded && packedGame) {
           cubeInfo = packedGame.cubesUsed === 0 ? 'Too Big' : (packedGame.cubeIndex + 1);
         }
+
+        // Handle games with missing dimensions
+        if (!g.dims) {
+          return `
+    <tr class="game-row" style="border-bottom:1px solid var(--border); background:var(--alt-bg); opacity:0.7">
+      <td style="text-align:center">
+        <input type="checkbox" disabled title="Games without dimensions are excluded from packing">
+      </td>
+      <td>${sourceBadge(g.source)}</td>
+      <td onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', 29.5, 29.5, 7.5)" title="Click to find dimensions via BGG versions" style="cursor:pointer">${escHtml(g.name)}</td>
+      <td><em style="color:var(--text-secondary)">Click to find dimensions</em></td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+    </tr>
+  `;
+        }
+
         return `
     <tr class="${rowClass}" style="border-bottom:1px solid var(--border)">
       <td style="text-align:center">
         <input type="checkbox" ${isIncluded ? 'checked' : ''} ${!passesFilter ? 'disabled title="Filtered out by size setting"' : 'onchange="toggleExcludeGame(' + g.id + ')" title="Include/exclude from shelf planning"'}>
       </td>
       <td>${sizeBadges(g.id, g.dims)}</td>
-      <td onclick="${g.dims ? 'openEditModal(' + g.id + ', \'' + escHtml(g.name).replace(/'/g, "\\'") + '\', ' + g.dims.l + ', ' + g.dims.w + ', ' + g.dims.h + ')' : ''}" title="${g.dims ? 'Click to edit dimensions' : 'No dimensions available'}" style="cursor:${g.dims ? 'pointer' : 'default'}">${escHtml(g.name)}</td>
-      <td onclick="${g.dims ? 'openEditModal(' + g.id + ', \'' + escHtml(g.name).replace(/'/g, "\\'") + '\', ' + g.dims.l + ', ' + g.dims.w + ', ' + g.dims.h + ')' : ''}" title="${g.dims ? 'Click to edit dimensions' : 'No dimensions available'}" style="cursor:${g.dims ? 'pointer' : 'default'}">${g.dims ? g.dims.l + ' × ' + g.dims.w + ' × ' + g.dims.h : '?'}</td>
+      <td onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})" title="Click to edit dimensions" style="cursor:pointer">${escHtml(g.name)}</td>
+      <td onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})" title="Click to edit dimensions" style="cursor:pointer">${g.dims.l} × ${g.dims.w} × ${g.dims.h}</td>
       <td>${sourceBadge(g.source)}</td>
       <td>${fitBadge(g.fit)}</td>
       <td>${cubeInfo}</td>
@@ -3256,10 +2724,9 @@
       return d.innerHTML;
     }
 
-    function parseCsvText(text) {
-      const rows = [];
-      let currentRow = [];
-      let currentCell = '';
+    function parseCsvLine(text) {
+      const result = [];
+      let current = '';
       let inQuote = false;
 
       for (let i = 0; i < text.length; i++) {
@@ -3267,37 +2734,20 @@
 
         if (char === '"') {
           if (inQuote && i + 1 < text.length && text[i + 1] === '"') {
-            currentCell += '"';
+            current += '"';
             i++; // skip escaped quote
           } else {
             inQuote = !inQuote;
           }
         } else if (char === ',' && !inQuote) {
-          currentRow.push(currentCell.trim());
-          currentCell = '';
-        } else if ((char === '\n' || (char === '\r' && text[i + 1] === '\n')) && !inQuote) {
-          if (char === '\r') i++; // skip \n
-          currentRow.push(currentCell.trim());
-          if (currentRow.length > 0 && currentRow.some(c => c !== '')) {
-            rows.push(currentRow);
-          }
-          currentRow = [];
-          currentCell = '';
+          result.push(current);
+          current = '';
         } else {
-          // ignore lone \r outside quotes if not part of \r\n
-          if (char !== '\r') {
-            currentCell += char;
-          }
+          current += char;
         }
       }
-
-      // push last cell and row
-      if (currentCell || currentRow.length > 0) {
-        currentRow.push(currentCell.trim());
-        if (currentRow.some(c => c !== '')) rows.push(currentRow);
-      }
-
-      return rows;
+      result.push(current);
+      return result.map(s => s.trim());
     }
 
     /* ═══════════════════════════════════════════════════
@@ -3328,15 +2778,13 @@
     kallaxSizeSelect.addEventListener('change', () => { if (games.length) render(); });
     orientationSelect.addEventListener('change', () => { if (games.length) render(); });
     minSizeSelect.addEventListener('change', () => { if (games.length) render(); });
-    document.getElementById('excludeFallback')?.addEventListener('change', () => { if (games.length) render(); });
 
     /* ═══════════════════════════════════════════════════
        FORM SUBMIT
        ═══════════════════════════════════════════════════ */
     async function doFetch(username, password) {
-      if (fetchBtn) fetchBtn.disabled = true;
       demoBtn.disabled = true;
-      if (resumeBtn) resumeBtn.disabled = true;
+      resumeBtn.disabled = true;
       try {
 
         showProgress(10, 'Fetching collection…');
@@ -3360,7 +2808,11 @@
         // Validate that all games have dimensions
         const invalidGames = games.filter(g => !g.dims || !g.dims.l || !g.dims.w || !g.dims.h);
         if (invalidGames.length > 0) {
-          console.warn(`${invalidGames.length} games have unknown dimensions.`);
+          console.warn(`${invalidGames.length} games have invalid dimensions, fixing...`);
+          invalidGames.forEach(g => {
+            g.dims = { l: 29.5, w: 29.5, h: 7.5 };
+            g.source = 'common';
+          });
         }
 
         // Save again with dimensions resolved
@@ -3390,26 +2842,160 @@
         }
         hideProgress();
       } finally {
-        if (fetchBtn) fetchBtn.disabled = false;
+        fetchBtn.disabled = false;
         demoBtn.disabled = false;
-        if (resumeBtn) resumeBtn.disabled = false;
+        resumeBtn.disabled = false;
       }
     }
 
     // Open BGG Collection for username
     if (openCollectionBtn) {
-      openCollectionBtn.addEventListener('click', () => {
+      openCollectionBtn.addEventListener('click', async () => {
         const username = bggUsername.value.trim();
         if (!username) {
           showError('Please enter a BGG username');
           return;
         }
-        const url = `https://boardgamegeek.com/collection/user/${encodeURIComponent(username)}`;
-        window.open(url, '_blank');
+
+        hideError();
+        showProgress(10, `Fetching ${username}'s collection…`);
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
+          const resp = await fetch(`/api/collection?username=${encodeURIComponent(username)}`, {
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (!resp.ok) {
+            const errData = await resp.json().catch(() => ({}));
+            throw new Error(errData.error || `Server error: ${resp.status}`);
+          }
+
+          const data = await resp.json();
+          const fetchedGames = data.games || [];
+
+          if (!Array.isArray(fetchedGames) || fetchedGames.length === 0) {
+            throw new Error('No games found in collection');
+          }
+
+          // Process games (same as CSV handler)
+          games = fetchedGames.map(g => ({
+            id: parseInt(g.id || g.objectid, 10),
+            name: g.name || g.objectname,
+            dims: null,
+            source: null
+          })).filter(g => g.id && g.name);
+
+          if (games.length === 0) {
+            throw new Error('No valid games found in collection');
+          }
+
+          showProgress(30, `Found ${games.length} games. Resolving dimensions…`);
+
+          // Fetch dimensions
+          await fetchDimensions(games);
+          resolveDimensions(games);
+
+          // Save to cache (games with missing dims will be null - user can use modal to find them)
+          saveCache(username, games);
+          updateCacheStatus();
+
+          showProgress(100, `✓ Loaded ${games.length} games!`);
+          setTimeout(hideProgress, 1000);
+          render();
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            showError('Request took too long (exceeded 2 minutes). Please use CSV import: Go to your BGG collection → ⋯ menu → "Download board games as CSV" → Upload here.');
+          } else {
+            showError(`Failed to fetch collection: ${err.message}\n\nFallback: Use CSV import instead.`);
+          }
+          hideProgress();
+          console.error('Fetch error:', err);
+        }
       });
     }
 
+    // CSV Upload handler
+    csvUpload.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
+      hideError();
+      try {
+        showProgress(10, 'Reading CSV file…');
+
+        const text = await file.text();
+        const lines = text.trim().split('\n');
+
+        if (lines.length < 2) {
+          throw new Error('CSV file is empty or invalid');
+        }
+
+        // Parse CSV header to find Game ID and Game Name columns
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        let idCol = headers.findIndex(h => h.includes('id') || h.includes('objectid'));
+        let nameCol = headers.findIndex(h => h.includes('name'));
+
+        if (idCol === -1 || nameCol === -1) {
+          throw new Error('CSV must have "Game ID" and "Game Name" columns');
+        }
+
+        // Parse games from CSV
+        games = [];
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          // Simple CSV parsing (handles basic quotes)
+          let cols = [];
+          let current = '';
+          let inQuotes = false;
+          for (let char of line) {
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) {
+              cols.push(current.trim().replace(/^"|"$/g, ''));
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          cols.push(current.trim().replace(/^"|"$/g, ''));
+
+          const id = parseInt(cols[idCol], 10);
+          const name = cols[nameCol];
+
+          if (id && name) {
+            games.push({ id, name, dims: null, source: null });
+          }
+        }
+
+        if (games.length === 0) {
+          throw new Error('No valid games found in CSV');
+        }
+
+        showProgress(30, `Found ${games.length} games. Resolving dimensions…`);
+
+        // Fetch dimensions
+        await fetchDimensions(games);
+        resolveDimensions(games);
+
+        // Save to cache (games with missing dims will be null - user can use modal to find them)
+        const username = file.name.replace(/[^a-z0-9]/gi, '').substring(0, 50) || 'imported';
+        saveCache(username, games);
+        updateCacheStatus();
+
+        showProgress(100, `✓ Loaded ${games.length} games!`);
+        setTimeout(hideProgress, 1000);
+        render();
+      } catch (err) {
+        showError('Error loading CSV: ' + err.message);
+        hideProgress();
+        console.error('CSV parse error:', err);
+      }
+    });
 
     // Auto-load cached data on page load
     {
@@ -3417,26 +3003,31 @@
       if (cache && cache.games && cache.games.length > 0) {
         // Load games from cache and RE-SORT their dimensions (l=largest, w=middle, h=smallest)
         games = cache.games.map(g => {
-          let dims = g.dims ? sortDims([
+          // Fix games with the suspicious "fallback" dimensions that shouldn't exist
+          // These are games that got the default 29.5×29.5×7.5 but are NOT in the real KNOWN_GAME_DIMS hardcoded list
+          if (g.dims && !KNOWN_GAME_DIMS[g.id]) {
+            // Check if this has the suspicious 29.5, 29.5, 7.5 dimensions (in any order)
+            const dims = [g.dims.l, g.dims.w, g.dims.h].sort((a, b) => b - a);
+            if (Math.abs(dims[0] - 29.5) < 0.1 && Math.abs(dims[1] - 29.5) < 0.1 && Math.abs(dims[2] - 7.5) < 0.1) {
+              // This is a wrongly-cached fallback game, mark it as missing
+              console.log(`🔧 Resetting cached dimensions for game ${g.id} (${g.name}) - suspected fake fallback size`);
+              g.dims = null;
+              g.source = 'missing';
+              return g;
+            }
+          }
+
+          const dims = g.dims ? sortDims([
             Number(g.dims.l),
             Number(g.dims.w),
             Number(g.dims.h)
           ]) : null;
-
-          // SANITIZE OLD BUG: If it exactly matches the buggy 29.5x29.5x7.5 fallback
-          // and it is NOT natively inside the actual KNOWN_GAME_DIMS list, 
-          // then it's a corrupted fake dimension. Nuke it so it stays unknown or refetches.
-          if (dims && dims.l === 29.5 && dims.w === 29.5 && dims.h === 7.5 && !KNOWN_GAME_DIMS[g.id]) {
-            dims = null;
-            g.source = null;
-          }
-
           return { ...g, dims };
         });
 
         // Enhance KNOWN_GAME_DIMS with cached games so they persist across reloads
         games.forEach(g => {
-          if (g.dims && g.source !== 'common' && !KNOWN_GAME_DIMS[g.id]) {
+          if (g.dims && !KNOWN_GAME_DIMS[g.id]) {
             KNOWN_GAME_DIMS[g.id] = [g.dims.l, g.dims.w, g.dims.h];
           }
         });
@@ -3445,20 +3036,6 @@
         resolveDimensions(games);
 
         render();
-
-        // Background: re-fetch dims for any games still unknown (without blocking the render)
-        const unknownGames = games.filter(g => !g.dims || g.source === 'unknown' || g.source === 'common');
-        if (unknownGames.length > 0 && USE_LOCAL_PROXY) {
-          console.log(`🔄 Background fetching dims for ${unknownGames.length} unknown games...`);
-          fetchDimensions(unknownGames).then(() => {
-            resolveDimensions(games);
-            const cacheUser = cache.username || 'imported';
-            saveCache(cacheUser, games);
-            updateCacheStatus();
-            render();
-            console.log(`✅ Background fetch complete.`);
-          });
-        }
       }
     }
 
@@ -3515,6 +3092,23 @@
       render();
     });
 
+    resumeBtn.addEventListener('click', () => {
+      hideError();
+      const cache = loadCache();
+      if (cache && cache.games && cache.games.length > 0) {
+        bggUsername.value = cache.username || '';
+        games = cache.games;
+        render();
+      } else {
+        showError('No cached collection found. Please import a collection first.');
+      }
+    });
+
+    csvPasteBtn.addEventListener('click', () => {
+      $('csvPasteArea').value = '';
+      $('csvPasteModal').classList.add('open');
+    });
+
     $('csvUpload').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -3524,31 +3118,30 @@
       try {
         let text = await file.text();
         text = text.replace(/^\uFEFF/, ''); // strip BOM
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) throw new Error("CSV file appears empty or invalid.");
 
-        const parsedRows = parseCsvText(text);
-        if (parsedRows.length < 2) throw new Error("CSV file appears empty or invalid.");
-
-        const headers = parsedRows[0].map(h => h.toLowerCase());
-        const nameIdx = headers.findIndex(h => h === 'objectname' || h === 'name');
-        const idIdx = headers.findIndex(h => h === 'objectid' || h === 'id' || h === 'gameid');
+        const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
+        const nameIdx = headers.indexOf('objectname');
+        const idIdx = headers.indexOf('objectid');
         const subTypeIdx = headers.indexOf('subtype');
         const itemTypeIdx = headers.indexOf('itemtype');
 
         if (nameIdx === -1 || idIdx === -1) {
-          throw new Error("Invalid CSV. Missing 'name' or 'objectid' column.");
+          throw new Error("Invalid BGG CSV. Missing 'objectname' or 'objectid' column.");
         }
 
         const rawGames = [];
-        for (let i = 1; i < parsedRows.length; i++) {
-          const cols = parsedRows[i];
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          const cols = parseCsvLine(line);
           const name = cols[nameIdx];
           const id = parseInt(cols[idIdx], 10);
+          const subtype = subTypeIdx !== -1 ? cols[subTypeIdx] : 'boardgame';
+          const itemtype = itemTypeIdx !== -1 ? cols[itemTypeIdx] : 'standalone';
 
-          // Defend against missing columns if rows are truncated
-          const subtype = (subTypeIdx !== -1 && cols[subTypeIdx]) ? cols[subTypeIdx].toLowerCase() : 'boardgame';
-          const itemtype = (itemTypeIdx !== -1 && cols[itemTypeIdx]) ? cols[itemTypeIdx].toLowerCase() : 'standalone';
-
-          if (id && name && subtype === 'boardgame' && itemtype !== 'expansion' && itemtype !== 'boardgameexpansion') {
+          if (id && name && subtype === 'boardgame' && itemtype !== 'expansion') {
             rawGames.push({ id, name, dims: null, source: null, thumbnail: '' });
           }
         }
@@ -3559,15 +3152,15 @@
 
         // Pretend this is a fetched collection now
         const fakeUsername = "CSV_Import";
-        $('bggUsername').value = fakeUsername;
+        $('bggUser').value = fakeUsername;
         saveCache(fakeUsername, games);
         updateCacheStatus();
 
         showProgress(50, `Found ${games.length} games. Fetching dimensions from BGG…`);
-        // fetchBtn removed
+        fetchBtn.disabled = true;
         demoBtn.disabled = true;
         testBtn.disabled = true;
-        if (resumeBtn) resumeBtn.disabled = true;
+        resumeBtn.disabled = true;
 
         await fetchDimensions(games);
         resolveDimensions(games);
@@ -3601,7 +3194,7 @@
       } finally {
         e.target.value = ''; // Reset file input
         demoBtn.disabled = false;
-        if (resumeBtn) resumeBtn.disabled = false;
+        resumeBtn.disabled = false;
       }
     });
 
@@ -3615,11 +3208,94 @@
       $('editW').value = w;
       $('editH').value = h;
       $('editSizeOverride').value = sizeOverrides[id] || '';
+
+      // Reset versions section
+      const versionsSection = $('editVersionsSection');
+      const versionsList = $('editVersionsList');
+      versionsSection.style.display = 'none';
+      versionsList.innerHTML = '';
+
+      // Open modal immediately
       $('editModal').classList.add('open');
+
+      // Fetch versions in background (async)
+      fetchVersionsForModal(id, l, w, h);
+    }
+
+    async function fetchVersionsForModal(id, l, w, h) {
+      // Try to fetch versions from BGG/local server
+      const versionsSection = $('editVersionsSection');
+      const versionsList = $('editVersionsList');
+
+      try {
+        console.log(`📦 Fetching versions for game ${id}...`);
+        const resp = await fetch(`/api/versions?id=${id}`);
+        if (!resp.ok) {
+          console.warn(`⚠️ Version API returned ${resp.status} for game ${id}`);
+          const errData = await resp.json().catch(() => ({}));
+          console.warn(`Error details: ${JSON.stringify(errData)}`);
+          return;
+        }
+
+        const data = await resp.json();
+        const versions = data.versions || [];
+        console.log(`  Found ${versions.length} versions`);
+
+        if (versions.length === 0) {
+          console.log(`  No versions available for game ${id}`);
+          return;
+        }
+
+        // Sort by largest dimension (likely to be closer to modern box sizes)
+        versions.sort((a, b) => {
+          const maxA = Math.max(a.l, a.w, a.h);
+          const maxB = Math.max(b.l, b.w, b.h);
+          return maxB - maxA;
+        });
+
+        let html = '';
+        versions.forEach((v, idx) => {
+          const highlight = (Math.abs(v.l - l) < 0.5 && Math.abs(v.w - w) < 0.5 && Math.abs(v.h - h) < 0.5) ? ' style="background:var(--teal-dim);font-weight:600"' : '';
+          html += `
+            <div${highlight} data-dims="${v.l},${v.w},${v.h}" style="padding:0.6rem 0.75rem; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; display:flex; justify-content:space-between; align-items:center"
+              onclick="setVersionDims(${v.l}, ${v.w}, ${v.h})"
+              title="Click to use these dimensions">
+              <span style="font-size:0.85rem">
+                <strong>${v.name || `Version ${idx + 1}`}</strong><br>
+                <span style="color:var(--text-secondary)">${v.l} × ${v.w} × ${v.h} cm</span>
+              </span>
+              <span style="color:var(--text-secondary); font-size:0.75rem">${v.year || ''}</span>
+            </div>
+          `;
+        });
+        versionsList.innerHTML = html;
+        versionsSection.style.display = 'block';
+        console.log(`✓ Loaded ${versions.length} versions for game ${id}`);
+      } catch (e) {
+        console.error(`❌ Error fetching versions: ${e.message}`, e);
+      }
+    }
+
+    function setVersionDims(l, w, h) {
+      $('editL').value = l;
+      $('editW').value = w;
+      $('editH').value = h;
+
+      // Immediately save and close — clicking a version is a confirm action
+      saveEditModal();
     }
 
     function closeEditModal() {
       $('editModal').classList.remove('open');
+    }
+
+    function openBggCollection(username) {
+      if (!username.trim()) {
+        showError('Please enter a BGG username first.');
+        return;
+      }
+      const url = `https://boardgamegeek.com/collection/user/${encodeURIComponent(username.trim())}`;
+      window.open(url, '_blank');
     }
 
     function saveEditModal() {
@@ -3656,11 +3332,98 @@
       if (game) {
         game.dims = sortDims([l, w, h]);
         game.source = 'custom';
-        saveCache($('bggUsername').value, games);
+        saveCache($('bggUser').value, games);
         render();
         hideError();
       }
       closeEditModal();
+    }
+
+    function closeCsvPasteModal() {
+      $('csvPasteModal').classList.remove('open');
+    }
+
+    async function processCsvPaste() {
+      const csvText = $('csvPasteArea').value.trim();
+      if (!csvText) {
+        showError('Please paste CSV content');
+        return;
+      }
+
+      hideError();
+      showProgress(10, 'Processing pasted CSV…');
+
+      try {
+        const lines = csvText.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) {
+          throw new Error("CSV appears empty");
+        }
+
+        // Parse CSV - handle both BGG format and generic format
+        const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase().trim());
+        let nameIdx = headers.indexOf('objectname');
+        let idIdx = headers.indexOf('objectid');
+
+        // Fallback to generic column names
+        if (nameIdx === -1) nameIdx = headers.findIndex(h => h.includes('name'));
+        if (idIdx === -1) idIdx = headers.findIndex(h => h.includes('id'));
+
+        if (nameIdx === -1 || idIdx === -1) {
+          throw new Error("CSV must have 'Name' and 'ID' columns");
+        }
+
+        const subTypeIdx = headers.indexOf('subtype');
+        const itemTypeIdx = headers.indexOf('itemtype');
+
+        // Parse games
+        games = [];
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          const cols = parseCsvLine(line);
+          if (cols.length <= Math.max(nameIdx, idIdx)) continue;
+
+          const name = cols[nameIdx];
+          const id = parseInt(cols[idIdx], 10);
+          const subtype = subTypeIdx !== -1 ? cols[subTypeIdx] : 'boardgame';
+          const itemtype = itemTypeIdx !== -1 ? cols[itemTypeIdx] : 'standalone';
+
+          // Filter out expansions and non-boardgames
+          if (id && name && subtype === 'boardgame' && itemtype !== 'expansion') {
+            games.push({ id, name, dims: null, source: null, thumbnail: '' });
+          }
+        }
+
+        if (games.length === 0) {
+          throw new Error("No valid board games found in pasted CSV");
+        }
+
+        showProgress(20, `Found ${games.length} games. Resolving dimensions…`);
+        await fetchDimensions(games);
+        resolveDimensions(games);
+
+        // Validate and fill missing
+        const missing = games.filter(g => !g.dims);
+        missing.forEach(g => {
+          g.dims = { l: 29.5, w: 29.5, h: 7.5 };
+          g.source = 'common';
+        });
+
+        saveCache('pasted_collection', games);
+        updateCacheStatus();
+
+        showProgress(100, `✓ Loaded ${games.length} games!`);
+        setTimeout(() => {
+          hideProgress();
+          closeCsvPasteModal();
+          render();
+        }, 500);
+      } catch (err) {
+        showError('Error processing CSV: ' + err.message);
+        hideProgress();
+        console.error('CSV paste error:', err);
+      }
     }
 
     function openBatchEditModal() {
@@ -3715,7 +3478,7 @@
       });
 
       localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
-      saveCache($('bggUsername').value, games);
+      saveCache($('bggUser').value, games);
       render();
       closeBatchEditModal();
       showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
