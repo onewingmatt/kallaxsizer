@@ -2,7 +2,12 @@
 """
 Local proxy server for the Kallax Collection Calculator.
 Serves index.html and proxies BGG API requests to bypass CORS.
-Uses Playwright to fetch collections (since the XML API is now blocked).
+
+Optional: to enable automatic dimension fetching, create bgg_config.json:
+  {"username": "your_bgg_username", "password": "your_bgg_password"}
+
+Usage: python3 server.py
+Then open http://localhost:8042
 """
 
 import http.server
@@ -13,8 +18,8 @@ import urllib.error
 import json
 import os
 import time
+import xml.etree.ElementTree as ET
 import requests as req_lib
-from concurrent.futures import ThreadPoolExecutor
 from playwright.sync_api import sync_playwright
 
 PORT = 8042
@@ -22,6 +27,7 @@ BGG_BASE = "https://boardgamegeek.com"
 GEEKDO_BASE = "https://api.geekdo.com"
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bgg_config.json")
 DIMS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dims_cache.json")
+COMMUNITY_DIMS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "community_dims.json")
 
 cookie_jar = http.cookiejar.CookieJar()
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
@@ -38,6 +44,38 @@ def save_dims_cache(cache):
         json.dump(cache, f, indent=2)
 
 dims_cache = load_dims_cache()
+
+def load_community_dims():
+    if os.path.exists(COMMUNITY_DIMS_FILE):
+        with open(COMMUNITY_DIMS_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_community_dims(store):
+    with open(COMMUNITY_DIMS_FILE, "w") as f:
+        json.dump(store, f, indent=2)
+
+def submit_community_dims(game_id, l, w, h):
+    """Record a user-submitted dimension. Finds matching entry (within 0.5cm) and
+    increments its vote, or adds a new entry with 1 vote. Returns the winning entry."""
+    store = load_community_dims()
+    key = str(game_id)
+    entries = store.get(key, [])
+    l, w, h = round(l, 1), round(w, 1), round(h, 1)
+    for entry in entries:
+        if abs(entry['l'] - l) <= 0.5 and abs(entry['w'] - w) <= 0.5 and abs(entry['h'] - h) <= 0.5:
+            entry['votes'] += 1
+            print(f"[community] game {key}: vote for {l}x{w}x{h} now {entry['votes']}")
+            break
+    else:
+        entries.append({'l': l, 'w': w, 'h': h, 'votes': 1})
+        print(f"[community] game {key}: new submission {l}x{w}x{h}")
+    store[key] = entries
+    save_community_dims(store)
+    best = max(entries, key=lambda e: e['votes'])
+    return best
+
+community_dims = load_community_dims()
 
 def bgg_request(url, method="GET", data=None, content_type=None, extra_headers=None):
     req = urllib.request.Request(url, data=data, method=method)
@@ -59,145 +97,83 @@ geekdo_session.headers.update({
     'Accept': 'application/json',
 })
 
-def fetch_dims_from_xml(gid):
-    """Try BGG XML API v2, which sometimes includes version dimensions in the thing record."""
-    try:
-        r = geekdo_session.get(
-            f"https://boardgamegeek.com/xmlapi2/thing",
-            params={'id': str(gid), 'versions': '1'},
-            timeout=15
-        )
-        if r.status_code == 429:
-            time.sleep(5)
-            r = geekdo_session.get(
-                f"https://boardgamegeek.com/xmlapi2/thing",
-                params={'id': str(gid), 'versions': '1'},
-                timeout=15
-            )
-        if r.status_code != 200:
-            return None
+bgg_access_token = None  # kept for backwards compat (not used for dims anymore)
 
-        import xml.etree.ElementTree as ET
-        root = ET.fromstring(r.text)
-        item = root.find('item')
-        if item is None:
-            return None
+def fetch_dims_for_ids(game_ids):
+    """
+    Fetch physical dimensions for BGG game IDs using api.geekdo.com.
+    Two-step process (no authentication required):
+      1. GET /api/geekitems?objectid={game_id}&objecttype=thing  → version list
+      2. GET /api/geekitems?objectid={version_id}&objecttype=version → dimensions
+    """
+    results = {}
+    uncached = [gid for gid in game_ids if str(gid) not in dims_cache]
 
-        best = None
-        for ver in item.findall('.//version/item'):
-            def dim(attr):
-                el = ver.find(f'.//{attr}')
-                if el is not None:
-                    try: return float(el.get('value', 0) or 0)
-                    except: pass
-                return 0.0
-            l, w, d = dim('depth'), dim('width'), dim('length')  # BGG XML uses these
+    # Return from cache for already-fetched games
+    for gid in game_ids:
+        key = str(gid)
+        if key in dims_cache and dims_cache[key] is not None:
+            results[key] = dims_cache[key]
 
-            # Also directly try width/length/depth attributes on the version item
-            if l == 0:
-                try: l = float(ver.get('depth', 0) or 0)
-                except: pass
-            if w == 0:
-                try: w = float(ver.get('width', 0) or 0)
-                except: pass
-            if d == 0:
-                try: d = float(ver.get('length', 0) or 0)
-                except: pass
+    if not uncached:
+        return results
 
-            if l > 0 and w > 0 and d > 0:
-                dims = sorted([l * 2.54, w * 2.54, d * 2.54], reverse=True)
-                best = {'l': round(dims[0], 1), 'w': round(dims[1], 1), 'h': round(dims[2], 1)}
-                break
-        return best
-    except Exception as e:
-        return None
+    print(f"  Fetching dims for {len(uncached)} games via api.geekdo.com...")
+    fetched = 0
 
-
-def fetch_dims_for_game(gid):
-    """Fetch physical dimensions for a single game ID via geekdo API."""
-    try:
-        # Step 1: get version IDs
-        r1 = geekdo_session.get(
-            f"{GEEKDO_BASE}/api/geekitems",
-            params={'objectid': str(gid), 'objecttype': 'thing', 'nosession': '1'},
-            timeout=10
-        )
-        if r1.status_code == 429:
-            time.sleep(3)
+    for gid in uncached:
+        key = str(gid)
+        try:
+            # Step 1: get version IDs from the game's item record
             r1 = geekdo_session.get(
                 f"{GEEKDO_BASE}/api/geekitems",
                 params={'objectid': str(gid), 'objecttype': 'thing', 'nosession': '1'},
                 timeout=10
             )
-        if r1.status_code != 200:
-            return gid, None
-
-        versions = r1.json().get('item', {}).get('links', {}).get('boardgameversion', [])
-        if not versions:
-            return gid, None
-
-        # Step 2: try versions until we find one with dimensions
-        for ver in versions:
-            vid = ver.get('objectid')
-            if not vid:
+            if r1.status_code != 200:
+                print(f"  [{gid}] geekitems status {r1.status_code}")
+                dims_cache[key] = None
                 continue
-            time.sleep(0.05)  # polite rate limiting
-            r2 = geekdo_session.get(
-                f"{GEEKDO_BASE}/api/geekitems",
-                params={'objectid': vid, 'objecttype': 'version', 'subtype': 'boardgameversion'},
-                timeout=10
-            )
-            if r2.status_code == 429:
-                time.sleep(3)
+
+            versions = r1.json().get('item', {}).get('links', {}).get('boardgameversion', [])
+            if not versions:
+                dims_cache[key] = None
                 continue
-            if r2.status_code != 200:
-                continue
-            item = r2.json().get('item', {})
-            l = float(item.get('length', 0) or 0)
-            w = float(item.get('width', 0) or 0)
-            d = float(item.get('depth', 0) or 0)
-            if l > 0 and w > 0 and d > 0:
-                dims = sorted([l * 2.54, w * 2.54, d * 2.54], reverse=True)
-                return gid, {'l': round(dims[0], 1), 'w': round(dims[1], 1), 'h': round(dims[2], 1)}
-        return gid, None
-    except Exception as e:
-        print(f"  [{gid}] error: {e}")
-        return gid, None
 
-def fetch_dims_for_ids(game_ids, force=False):
-    results = {}
-    
-    if force:
-        uncached = game_ids
-    else:
-        # Only retry games that were never attempted (not in cache at all)
-        # Do NOT skip games with None in cache — allow retries for previously-failed lookups
-        uncached = [gid for gid in game_ids if str(gid) not in dims_cache]
+            # Step 2: try each version until we find one with dimensions
+            found = False
+            for ver in versions:
+                vid = ver.get('objectid')
+                if not vid:
+                    continue
+                time.sleep(0.2)  # polite rate limiting
+                r2 = geekdo_session.get(
+                    f"{GEEKDO_BASE}/api/geekitems",
+                    params={'objectid': vid, 'objecttype': 'version', 'subtype': 'boardgameversion'},
+                    timeout=10
+                )
+                if r2.status_code != 200:
+                    continue
+                item = r2.json().get('item', {})
+                l = float(item.get('length', 0) or 0)
+                w = float(item.get('width', 0) or 0)
+                d = float(item.get('depth', 0) or 0)
+                if l > 0 and w > 0 and d > 0:
+                    dims = sorted([l * 2.54, w * 2.54, d * 2.54], reverse=True)
+                    dims_cache[key] = {'l': round(dims[0], 1), 'w': round(dims[1], 1), 'h': round(dims[2], 1)}
+                    results[key] = dims_cache[key]
+                    fetched += 1
+                    found = True
+                    break
 
-        # Return from cache for already-successfully-fetched games
-        for gid in game_ids:
-            key = str(gid)
-            if key in dims_cache and dims_cache[key] is not None:
-                results[key] = dims_cache[key]
+            if not found:
+                dims_cache[key] = None
 
-    if not uncached:
-        return results
+        except Exception as e:
+            print(f"  [{gid}] error: {e}")
+            dims_cache[key] = None
 
-    print(f"  Fetching dims for {len(uncached)} games via api.geekdo.com (Parallel)...")
-    
-    # Use fewer workers for large batches to avoid rate limiting
-    workers = 3 if len(uncached) > 100 else 5
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        batch_results = list(executor.map(fetch_dims_for_game, uncached))
-        
-    for gid, dims in batch_results:
-        key = str(gid)
-        if dims:
-            # Only cache successful results — failures must be retried next time
-            dims_cache[key] = dims
-            results[key] = dims
-        # Do NOT write None to cache — leaves the door open for retries
-
+    print(f"  Done: {fetched}/{len(uncached)} games got dimensions")
     save_dims_cache(dims_cache)
     return results
 
@@ -205,6 +181,7 @@ def scrape_bgg_collection(username):
     """Use Playwright to scrape the collection page for games (bypasses XML API blockage)."""
     print(f"Scraping collection for {username} via Playwright...")
     try:
+        from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             browser = p.chromium.launch(
                 headless=True,
@@ -212,38 +189,39 @@ def scrape_bgg_collection(username):
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
                     '--disable-dev-shm-usage',
-                    '--disable-gpu',
                 ]
             )
             context = browser.new_context(
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             )
             page = context.new_page()
+            
             all_games = []
             page_num = 1
             
             while True:
-                url = f"https://boardgamegeek.com/collection/user/{username}?own=1&objecttype=thing&subtype=boardgame&page={page_num}"
-                page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                url = f"https://boardgamegeek.com/collection/user/{urllib.parse.quote(username)}?own=1&subtype=boardgame&excludesubtype=boardgameexpansion&page={page_num}"
+                print(f"  Loading page {page_num}: {url}")
                 
-                # Wait for the table to load
                 try:
-                    page.wait_for_selector(".collection_table", timeout=10000)
-                except:
-                    # If it's page 1, might just be empty. If it's page > 1, we might have hit the end unexpectedly
-                    if page_num == 1:
-                        print("  Table selector not found, collection might be empty.")
-                    break
-                    
+                    page.goto(url, wait_until="load", timeout=60000)
+                    page.wait_for_selector('tr[id^="row_"]', timeout=20000)
+                    page.wait_for_timeout(2000)
+                except Exception as e:
+                    print(f"  [Page {page_num}] Warning/Error waiting for rows: {e}")
+                    if all_games: break
+                    else: return None
+
                 # Extract games from the table
                 games = page.evaluate("""
                     () => {
                         const items = [];
-                        const rows = document.querySelectorAll('tr[id^="row_"]');
+                        const rows = Array.from(document.querySelectorAll('tr[id^="row_"]'));
                         rows.forEach(row => {
-                            const link = row.querySelector('td.collection_objectname a');
+                            const link = row.querySelector('a.primary') || row.querySelector('td.collection_objectname a');
                             if (!link) return;
-                            const idMatch = link.href.match(/boardgame\\/(\\d+)/);
+                            const href = link.href || "";
+                            const idMatch = href.match(/boardgame\\/(\\d+)/);
                             if (!idMatch) return;
                             items.push({
                                 id: parseInt(idMatch[1], 10),
@@ -256,17 +234,16 @@ def scrape_bgg_collection(username):
                 
                 if not games:
                     break
-                    
-                all_games.extend(games)
                 
-                # Check if there's a next page link (BGG uses '»' text or title containing 'next')
+                all_games.extend(games)
+                print(f"  [Page {page_num}] Extracted {len(games)} games")
+                
+                # Check for next page
                 has_next = page.evaluate("""
                     () => {
-                        const links = Array.from(document.querySelectorAll('a'));
-                        return links.some(l =>
-                            l.title.toLowerCase().includes('next') ||
-                            l.textContent.includes('\u00bb')
-                        );
+                        const nextLink = document.querySelector('a[title="next page"]') || 
+                                       Array.from(document.querySelectorAll('a')).find(l => l.textContent.includes('\\u00bb'));
+                        return !!nextLink;
                     }
                 """)
                 
@@ -282,55 +259,78 @@ def scrape_bgg_collection(username):
         print(f"  ✗ Playwright scrape error: {e}")
         return None
 
-def fetch_collection_xml(username):
-    """Fetch collection via BGG XML API2 (works from datacenter IPs unlike the HTML pages)."""
-    import xml.etree.ElementTree as ET
-    print(f"Fetching collection for {username} via XML API...")
-    url = f"https://boardgamegeek.com/xmlapi2/collection?username={urllib.parse.quote(username)}&own=1&subtype=boardgame&excludesubtype=boardgameexpansion&stats=0"
-    
-    max_retries = 8
-    for attempt in range(max_retries):
-        try:
-            resp = opener.open(urllib.request.Request(url, headers={
-                'User-Agent': BROWSER_UA,
-                'Accept': 'application/xml',
-            }), timeout=30)
-            status = resp.getcode()
-            if status == 200:
-                data = resp.read().decode('utf-8')
-                root = ET.fromstring(data)
-                games = []
-                for item in root.findall('.//item'):
-                    obj_id = item.get('objectid')
-                    name_el = item.find('name')
-                    if obj_id and name_el is not None:
-                        games.append({
-                            'id': int(obj_id),
-                            'name': name_el.text or ''
-                        })
-                print(f"  ✓ XML API returned {len(games)} games")
-                return games
-            elif status == 202:
-                # BGG queues collection requests — retry after a delay
-                print(f"  ⏳ XML API returned 202 (queued), retry {attempt+1}/{max_retries}...")
-                time.sleep(3)
+def fetch_game_versions(game_id):
+    """
+    Fetch all versions (editions) for a single game with their dimensions.
+    Returns a list of versions with name, year, and dimensions.
+    """
+    versions = []
+    try:
+        # Step 1: Get all version IDs for this game
+        r1 = geekdo_session.get(
+            f"{GEEKDO_BASE}/api/geekitems",
+            params={'objectid': str(game_id), 'objecttype': 'thing', 'nosession': '1'},
+            timeout=10
+        )
+        if r1.status_code != 200:
+            print(f"  [Game {game_id}] geekitems status {r1.status_code}")
+            return versions
+
+        item = r1.json().get('item', {})
+        version_list = item.get('links', {}).get('boardgameversion', [])
+        if not version_list:
+            print(f"  [Game {game_id}] no versions found")
+            return versions
+
+        print(f"  [Game {game_id}] found {len(version_list)} versions, fetching dimensions...")
+
+        # Step 2: Fetch each version's dimensions
+        for idx, ver_link in enumerate(version_list[:10]):  # Limit to 10 versions
+            vid = ver_link.get('objectid')
+            if not vid:
                 continue
-            else:
-                print(f"  ✗ XML API returned status {status}")
-                return None
-        except urllib.error.HTTPError as e:
-            if e.code == 202:
-                print(f"  ⏳ XML API returned 202 (queued), retry {attempt+1}/{max_retries}...")
-                time.sleep(3)
+            
+            try:
+                time.sleep(0.15)  # polite rate limiting
+                r2 = geekdo_session.get(
+                    f"{GEEKDO_BASE}/api/geekitems",
+                    params={'objectid': vid, 'objecttype': 'version', 'subtype': 'boardgameversion'},
+                    timeout=10
+                )
+                if r2.status_code != 200:
+                    continue
+                
+                item_data = r2.json().get('item', {})
+                l = float(item_data.get('length', 0) or 0)
+                w = float(item_data.get('width', 0) or 0)
+                d = float(item_data.get('depth', 0) or 0)
+                
+                # Only include if we have valid dimensions
+                if l > 0 and w > 0 and d > 0:
+                    dims = sorted([l * 2.54, w * 2.54, d * 2.54], reverse=True)
+                    
+                    # Get version name and year
+                    name = item_data.get('name', f'Version {idx + 1}')
+                    year = item_data.get('yearpublished')
+                    publisher = item_data.get('publisher', {}).get(0, {}).get('name', '')
+                    
+                    versions.append({
+                        'id': vid,
+                        'name': f"{name}" if not publisher else f"{name} ({publisher})",
+                        'year': year,
+                        'l': round(dims[0], 1),
+                        'w': round(dims[1], 1),
+                        'h': round(dims[2], 1)
+                    })
+            except Exception as e:
+                print(f"    [Version {vid}] error: {e}")
                 continue
-            print(f"  ✗ XML API HTTP error: {e.code}")
-            return None
-        except Exception as e:
-            print(f"  ✗ XML API error: {e}")
-            return None
-    
-    print(f"  ✗ XML API: gave up after {max_retries} retries (still 202)")
-    return None
+
+    except Exception as e:
+        print(f"  [Game {game_id}] error: {e}")
+
+    print(f"  [Game {game_id}] returned {len(versions)} versions with dimensions")
+    return versions
 
 class ProxyHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -340,6 +340,10 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self._handle_collection()
         elif self.path.startswith("/api/dims"):
             self._handle_dims()
+        elif self.path.startswith("/api/versions"):
+            self._handle_versions()
+        elif self.path.startswith("/api/community-dims"):
+            self._handle_community_dims_get()
         elif self.path == "/api/status":
             self._handle_status()
         else:
@@ -350,6 +354,8 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self._proxy_post()
         elif self.path == "/api/bgg-login":
             self._handle_bgg_login()
+        elif self.path == "/api/community-dims":
+            self._handle_community_dims_post()
         else:
             self.send_error(404)
 
@@ -358,24 +364,33 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         parsed_url = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(parsed_url.query)
         username = qs.get("username", [""])[0]
+        
         if not username:
-            self._json_response(400, {"error": "Missing username parameter"})
+            self._json_response(400, {"error": "Missing ?username= parameter"})
             return
-            
-        games = scrape_bgg_collection(username)
-        if games is not None:
-            self._json_response(200, {"games": games, "count": len(games)})
-        else:
+        
+        try:
+            games = scrape_bgg_collection(username)
+            if games is not None:
+                self._json_response(200, {"username": username, "games": games, "count": len(games)})
+            else:
+                self._json_response(500, {
+                    "error": "Failed to scrape BGG collection. Please use CSV import instead.",
+                    "username": username,
+                    "workaround": "1. Go to your BGG collection\n2. Click ⋯ menu → 'Download board games as CSV'\n3. Upload the CSV file using the 📁 button"
+                })
+        except Exception as e:
+            print(f"Error scraping collection for {username}: {e}")
             self._json_response(500, {
-                "error": "Failed to scrape BGG collection automatically.",
-                "workaround": "Use CSV import instead: BGG Collection → ⋯ → Export as CSV → Upload to app"
+                "error": f"Collection scraping failed: {str(e)}",
+                "username": username,
+                "workaround": "Use CSV import instead"
             })
 
     def _handle_dims(self):
         parsed_url = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(parsed_url.query)
         raw_ids = qs.get("ids", [""])[0]
-        force = qs.get("force", ["0"])[0] == "1"
         if not raw_ids:
             self._json_response(400, {"error": "Missing ?ids= parameter"})
             return
@@ -384,22 +399,65 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         except ValueError:
             self._json_response(400, {"error": "Invalid IDs"})
             return
-        if len(game_ids) > 2000:
-            self._json_response(400, {"error": "Too many IDs (max 2000)"})
+        if len(game_ids) > 500:
+            self._json_response(400, {"error": "Too many IDs (max 500)"})
             return
-        results = fetch_dims_for_ids(game_ids, force)
+        results = fetch_dims_for_ids(game_ids)
         self._json_response(200, {"dims": results, "count": len(results), "requested": len(game_ids)})
+
+    def _handle_versions(self):
+        """Fetch all available versions (editions) for a single game ID with their dimensions"""
+        parsed_url = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed_url.query)
+        game_id = qs.get("id", [""])[0]
+        if not game_id:
+            self._json_response(400, {"error": "Missing ?id= parameter"})
+            return
+        try:
+            game_id = int(game_id)
+        except ValueError:
+            self._json_response(400, {"error": "Invalid game ID"})
+            return
+        
+        versions = fetch_game_versions(game_id)
+        self._json_response(200, {"id": game_id, "versions": versions})
+
+    def _handle_community_dims_get(self):
+        """Return the highest-voted dims for every game that has community submissions."""
+        store = load_community_dims()
+        best = {}
+        for gid, entries in store.items():
+            if entries:
+                winner = max(entries, key=lambda e: e['votes'])
+                best[gid] = winner
+        self._json_response(200, {"dims": best, "count": len(best)})
+
+    def _handle_community_dims_post(self):
+        """Accept a new dimension submission from the frontend."""
+        content_len = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_len) if content_len > 0 else b"{}"
+        try:
+            data = json.loads(body)
+            gid = int(data["id"])
+            l = float(data["l"])
+            w = float(data["w"])
+            h = float(data["h"])
+        except (KeyError, ValueError, TypeError) as e:
+            self._json_response(400, {"error": f"Invalid body: {e}"})
+            return
+        best = submit_community_dims(gid, l, w, h)
+        self._json_response(200, {"ok": True, "best": best})
 
     def _handle_status(self):
         self._json_response(200, {
-            "logged_in": True,
+            "logged_in": True,  # no login needed; geekdo API is public
             "cached_games": len([v for v in dims_cache.values() if v is not None]),
             "config_file": os.path.exists(CONFIG_FILE),
-            "playwright_enabled": True
         })
 
     def _handle_bgg_login(self):
-        self._json_response(200, {"ok": True, "message": "Login no longer required — using Playwright scraper"})
+        # Login no longer required — api.geekdo.com works without auth
+        self._json_response(200, {"ok": True, "message": "No login required — dimensions fetched from api.geekdo.com"})
 
     def _json_response(self, status, data):
         body = json.dumps(data).encode()
@@ -451,6 +509,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(body)
+            print(f"  POST {target}: {resp.status}, cookies: {len(cookie_jar)}")
         except urllib.error.HTTPError as e:
             body = e.read()
             print(f"  POST error {e.code}")
@@ -474,18 +533,25 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def log_message(self, format, *args):
-        # Silence logs for better CLI visibility
-        pass
+        print(f"[{self.log_date_time_string()}] {format % args}")
 
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    print(f"Starting Kallax Calculator Server on port {PORT}...")
-    print(f"Dimension cache: {len([v for v in dims_cache.values() if v is not None])} games")
-    print(f"Playwright: Collection scraping enabled")
+    print("Getting BGG session cookies...")
+    try:
+        bgg_request(BGG_BASE)
+        print(f"Got {len(cookie_jar)} cookies from BGG")
+    except Exception as e:
+        print(f"Could not pre-warm cookies: {e}")
+
+    print(f"Dimension source: api.geekdo.com (no login required)")
+    print(f"Cached dims: {len([v for v in dims_cache.values() if v is not None])} games")
 
     server = http.server.HTTPServer(("", PORT), ProxyHandler)
-    print(f"Server active at http://localhost:{PORT}")
+    print(f"Kallax Calculator running at http://localhost:{PORT}")
+    print(f"Open http://localhost:{PORT}/index.html")
+    print(f"Press Ctrl+C to stop")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

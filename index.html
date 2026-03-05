@@ -451,6 +451,11 @@
         color: #94a3b8;
       }
 
+      :root:not([data-theme="light"]) .badge-community {
+        background: #312e81;
+        color: #c7d2fe;
+      }
+
       :root:not([data-theme="light"]) .badge-missing {
         background: #7f1d1d;
         color: #fca5a5;
@@ -504,6 +509,11 @@
       color: #94a3b8;
     }
 
+    [data-theme="dark"] .badge-community {
+      background: #312e81;
+      color: #c7d2fe;
+    }
+
     [data-theme="dark"] .badge-fit-yes {
       background: #14532d;
       color: #86efac;
@@ -548,6 +558,11 @@
     [data-theme="light"] .badge-common {
       background: #e2e8f0;
       color: #475569;
+    }
+
+    [data-theme="light"] .badge-community {
+      background: #e0e7ff;
+      color: #4f46e5;
     }
 
     [data-theme="light"] .badge-fit-yes {
@@ -991,12 +1006,12 @@
       </div>
       <div class="form-group" style="margin-top:0.75rem">
         <label>Size Category Override</label>
-        <select id="editSizeOverride">
+        <select id="editSizeOverride" onchange="applyDefaultSizeForCategory(this.value)">
           <option value="">— Auto (from dimensions)</option>
-          <option value="card">Card Game</option>
-          <option value="small">Small Box</option>
-          <option value="medium">Medium Box</option>
-          <option value="standard">Standard Box</option>
+          <option value="card">Card Game (~13×10×4 cm)</option>
+          <option value="small">Small Box (~19.5×19.5×7 cm)</option>
+          <option value="medium">Medium Box (~25×25×7 cm)</option>
+          <option value="standard">Standard Box (~29.5×29.5×7.5 cm)</option>
         </select>
       </div>
       <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem">
@@ -1553,7 +1568,9 @@
        STATE
        ═══════════════════════════════════════════════════ */
     let games = [];
-    let excludedGameIds = new Set();  // Track games excluded from shelf planning
+    let excludedGameIds = new Set();
+    let bggDimsCache = {};
+    let communityDims = {};
     let sizeOverrides = {};  // Track manual size category overrides: { gameId: 'card'|'small'|'medium'|'standard' }
     let sortCol = 'name';
     let sortAsc = true;
@@ -2052,7 +2069,7 @@
     function resolveDimensions(gameList) {
       const customDims = JSON.parse(localStorage.getItem('bgsize_customDims') || '{}');
 
-      let custom = 0, bgg = 0, known = 0, fallback = 0;
+      let custom = 0, bgg = 0, known = 0, community = 0, fallback = 0;
 
       gameList.forEach(g => {
         // Check custom dimensions first (but validate they're real)
@@ -2079,6 +2096,11 @@
           g.dims = sortDims([l, w, h]);
           g.source = 'known';
           known++;
+        } else if (communityDims[g.id]) {
+          const c = communityDims[g.id];
+          g.dims = sortDims([c.l, c.w, c.h]);
+          g.source = 'community';
+          community++;
         } else {
           // Leave dims as null and mark as 'missing' - user must use modal to find dimensions
           g.dims = null;
@@ -2092,6 +2114,7 @@
       console.log(`  BGG API: ${bgg} games`);
       console.log(`  Known DB: ${known} games`);
       console.log(`  Custom: ${custom} games`);
+      console.log(`  Community: ${community} games`);
       console.log(`  Fallback (standard): ${fallback} games`);
 
       if (fallback > 0 && fallback / gameList.length > 0.5) {
@@ -2549,6 +2572,7 @@
       if (src === 'custom') return '<span class="badge badge-custom">✏️ Custom Size</span>';
       if (src === 'bgg') return '<span class="badge badge-bgg">BGG Version</span>';
       if (src === 'known') return '<span class="badge badge-known">Known Size</span>';
+      if (src === 'community') return '<span class="badge badge-community">🌐 Community</span>';
       if (src === 'missing') return '<span class="badge badge-missing">❓ No Data - Click to Find</span>';
       return '<span class="badge badge-common">Common Size</span>';
     }
@@ -3276,6 +3300,18 @@
       }
     }
 
+    function applyDefaultSizeForCategory(cat) {
+      if (!cat) return;
+      const l = parseFloat($('editL').value) || 0;
+      const w = parseFloat($('editW').value) || 0;
+      const h = parseFloat($('editH').value) || 0;
+      // Only auto-fill if the game currently has no dimensions
+      if (l > 0 && w > 0 && h > 0) return;
+      const defaults = { card: [13, 10, 4], small: [19.5, 19.5, 7], medium: [25, 25, 7], standard: [29.5, 29.5, 7.5] };
+      const d = defaults[cat];
+      if (d) { $('editL').value = d[0]; $('editW').value = d[1]; $('editH').value = d[2]; }
+    }
+
     function setVersionDims(l, w, h) {
       $('editL').value = l;
       $('editW').value = w;
@@ -3330,8 +3366,19 @@
       // Re-resolve existing games and re-render
       const game = games.find(g => g.id === id);
       if (game) {
+        const wasMissing = game.source === 'missing';
         game.dims = sortDims([l, w, h]);
         game.source = 'custom';
+
+        // Publish to community if the game previously had no data at all
+        if (wasMissing) {
+          fetch('/api/community-dims', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, l, w, h })
+          }).catch(e => console.error('Failed to publish community dims', e));
+        }
+
         saveCache($('bggUser').value, games);
         render();
         hideError();
@@ -3401,7 +3448,25 @@
 
         showProgress(20, `Found ${games.length} games. Resolving dimensions…`);
         await fetchDimensions(games);
+        if (Object.keys(bggDimsCache).length === 0) {
+          // Fall back to BGG fetch if no cache
+          const missing = games.filter(g => !KNOWN_GAME_DIMS[g.id] && !bggDimsCache[g.id]);
+          if (missing.length > 0) {
+            fetchDimsInBackground(missing);
+          }
+        }
+
+        // Fetch community dims
+        try {
+          const cResp = await fetch('/api/community-dims');
+          if (cResp.ok) {
+            const cData = await cResp.json();
+            communityDims = cData.dims || {};
+          }
+        } catch (e) { console.log('Could not load community dims', e); }
+
         resolveDimensions(games);
+        render();
 
         // Validate and fill missing
         const missing = games.filter(g => !g.dims);
