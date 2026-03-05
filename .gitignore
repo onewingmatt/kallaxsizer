@@ -1,5 +1,6 @@
 # Cache and generated data
 dims_cache.json
+community_dims.json
 bgg_config.json
 
 # Python
