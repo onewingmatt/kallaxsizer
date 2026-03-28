@@ -768,7 +768,7 @@
       </div>
       <button id="themeToggle" class="btn btn-secondary"
         style="padding:0.4rem 0.8rem; border-radius:20px; font-size:1.2rem; cursor:pointer"
-        title="Toggle Theme">🌓</button>
+        title="Toggle Theme" aria-label="Toggle Theme">🌓</button>
     </div>
     <span class="easter-egg">import antigravity # xkcd.com/353</span>
   </header>
@@ -2417,14 +2417,26 @@
           cube.className = 'kallax-cube ' + (isFilled ? 'filled' : 'empty');
           if (isFilled && gamesInCube.length > 0) {
             cube.style.cursor = 'pointer';
-            cube.title = gamesInCube.map(g => g.name).join(', ');
+            cube.tabIndex = 0;
+            cube.role = 'button';
+            const names = gamesInCube.map(g => g.name).join(', ');
+            cube.title = names;
+            cube.setAttribute('aria-label', `Cube ${ci + 1} contains ${gamesInCube.length} games: ${names}`);
+
             // Show game count badge
             const count = document.createElement('span');
             count.style.cssText = 'font-size:10px;color:#fff;font-weight:700;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)';
             count.textContent = gamesInCube.length;
+            count.setAttribute('aria-hidden', 'true');
             cube.appendChild(count);
-            cube.addEventListener('click', () => {
-              showCubeDetail(ci, gamesInCube, orientation);
+
+            const clickHandler = () => showCubeDetail(ci, gamesInCube, orientation);
+            cube.addEventListener('click', clickHandler);
+            cube.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                clickHandler();
+              }
             });
           }
           cubeIdx++;
@@ -2699,10 +2711,11 @@
 
         // Handle games with missing dimensions
         if (!g.dims) {
+          const escName = escHtml(g.name);
           return `
     <tr class="game-row" style="border-bottom:1px solid var(--border); background:var(--alt-bg); opacity:0.7">
       <td style="text-align:center">
-        <input type="checkbox" disabled title="Games without dimensions are excluded from packing">
+        <input type="checkbox" disabled title="Games without dimensions are excluded from packing" aria-label="Exclude ${escName} (missing dimensions)">
       </td>
       <td>${sourceBadge(g.source)}</td>
       <td onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', 29.5, 29.5, 7.5)" title="Click to find dimensions via BGG versions" style="cursor:pointer">${escHtml(g.name)}</td>
@@ -2714,10 +2727,11 @@
   `;
         }
 
+        const escName = escHtml(g.name);
         return `
     <tr class="${rowClass}" style="border-bottom:1px solid var(--border)">
       <td style="text-align:center">
-        <input type="checkbox" ${isIncluded ? 'checked' : ''} ${!passesFilter ? 'disabled title="Filtered out by size setting"' : 'onchange="toggleExcludeGame(' + g.id + ')" title="Include/exclude from shelf planning"'}>
+        <input type="checkbox" ${isIncluded ? 'checked' : ''} ${!passesFilter ? 'disabled title="Filtered out by size setting" aria-label="Included ' + escName + ' (filtered by size)"' : 'onchange="toggleExcludeGame(' + g.id + ')" title="Include/exclude from shelf planning" aria-label="Include ' + escName + ' in shelf planning"'}>
       </td>
       <td>${sizeBadges(g.id, g.dims)}</td>
       <td onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})" title="Click to edit dimensions" style="cursor:pointer">${escHtml(g.name)}</td>
