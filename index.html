@@ -193,10 +193,17 @@
     }
 
     input:focus,
-    select:focus {
+    select:focus,
+    .btn:focus-visible,
+    [role="button"]:focus-visible {
       outline: none;
       border-color: var(--teal);
       box-shadow: 0 0 0 3px var(--teal-dim);
+    }
+
+    [role="button"]:focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: 2px;
     }
 
     /* ── Buttons ── */
@@ -933,7 +940,9 @@
       <!-- Shelf Roster -->
       <div class="card" id="shelfRosterCard" style="display:none">
         <div onclick="toggleShelfRoster()"
-          style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none">
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleShelfRoster()}"
+          role="button" tabindex="0" aria-expanded="false" aria-controls="shelfRosterBody"
+          style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;border-radius:4px">
           <h2 style="margin:0">📋 Shelf Roster</h2>
           <div style="display:flex;align-items:center;gap:0.75rem">
             <span style="font-size:0.8rem;color:var(--text-secondary)" id="shelfRosterCount"></span>
@@ -2531,9 +2540,13 @@
     function toggleShelfRoster() {
       const body = $('shelfRosterBody');
       const chevron = $('shelfRosterChevron');
+      const cardHeader = body.previousElementSibling;
       const open = body.style.display !== 'none';
       body.style.display = open ? 'none' : '';
       chevron.style.transform = open ? '' : 'rotate(90deg)';
+      if (cardHeader) {
+        cardHeader.setAttribute('aria-expanded', !open);
+      }
     }
 
     function renderShelfRoster(packed, orientation) {
@@ -2564,11 +2577,17 @@
           const rem = KALLAX.width - used;
           spineInfo = `<div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem">${used.toFixed(1)}cm / ${KALLAX.width}cm &mdash; <span style="color:${rem < 0 ? 'var(--red,#ef4444)' : 'var(--text-secondary)'}">${rem.toFixed(1)}cm free</span></div>`;
         }
-        const rows = games.map(g => `
-          <div class="game-row" onclick="openEditModal(${g.id},'${escHtml(g.name).replace(/'/g, "\\'")}',${g.dims.l},${g.dims.w},${g.dims.h})" title="Click to edit" style="display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.85rem">
+        const rows = games.map(g => {
+          const escName = escHtml(g.name).replace(/'/g, "\\'");
+          return `
+          <div class="game-row" onclick="openEditModal(${g.id},'${escName}',${g.dims.l},${g.dims.w},${g.dims.h})"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openEditModal(${g.id},'${escName}',${g.dims.l},${g.dims.w},${g.dims.h})}"
+            role="button" tabindex="0" title="Click to edit"
+            style="display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.85rem">
             <span>${escHtml(g.name)}</span>
             <span style="color:var(--text-secondary);white-space:nowrap;margin-left:0.5rem">${g.dims.l}×${g.dims.w}×${g.dims.h}</span>
-          </div>`).join('');
+          </div>`;
+        }).join('');
         return `<div style="background:var(--bg-card-alt,var(--card-bg));border:1px solid var(--border);border-radius:8px;padding:0.75rem;min-width:0">
           <div style="font-weight:700;margin-bottom:0.35rem">📦 Cube #${ci + 1} <span style="font-weight:400;color:var(--text-secondary);font-size:0.8rem">(${games.length} game${games.length !== 1 ? 's' : ''})</span></div>
           ${spineInfo}${rows}
@@ -2714,6 +2733,7 @@
         }
 
         // Handle games with missing dimensions
+        const escName = escHtml(g.name).replace(/'/g, "\\'");
         if (!g.dims) {
           return `
     <tr class="game-row" style="border-bottom:1px solid var(--border); background:var(--alt-bg); opacity:0.7">
@@ -2721,7 +2741,11 @@
         <input type="checkbox" disabled aria-label="Include ${escHtml(g.name).replace(/"/g, '&quot;')} in planning (needs dimensions)" title="Games without dimensions are excluded from packing">
       </td>
       <td>${sourceBadge(g.source)}</td>
-      <td onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', 29.5, 29.5, 7.5)" title="Click to find dimensions via BGG versions" style="cursor:pointer">${escHtml(g.name)}</td>
+      <td onclick="openEditModal(${g.id}, '${escName}', 29.5, 29.5, 7.5)"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openEditModal(${g.id}, '${escName}', 29.5, 29.5, 7.5)}"
+          role="button" tabindex="0" title="Click to find dimensions via BGG versions" style="cursor:pointer">
+        ${escHtml(g.name)}
+      </td>
       <td><em style="color:var(--text-secondary)">Click to find dimensions</em></td>
       <td>—</td>
       <td>—</td>
@@ -2736,8 +2760,16 @@
         <input type="checkbox" ${isIncluded ? 'checked' : ''} ${!passesFilter ? 'disabled title="Filtered out by size setting"' : 'onchange="toggleExcludeGame(' + g.id + ')" aria-label="Include ' + escHtml(g.name).replace(/"/g, '&quot;') + ' in planning" title="Include/exclude from shelf planning"'}>
       </td>
       <td>${sizeBadges(g.id, g.dims)}</td>
-      <td onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})" title="Click to edit dimensions" style="cursor:pointer">${escHtml(g.name)}</td>
-      <td onclick="openEditModal(${g.id}, '${escHtml(g.name).replace(/'/g, "\\'")}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})" title="Click to edit dimensions" style="cursor:pointer">${g.dims.l} × ${g.dims.w} × ${g.dims.h}</td>
+      <td onclick="openEditModal(${g.id}, '${escName}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openEditModal(${g.id}, '${escName}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})}"
+          role="button" tabindex="0" title="Click to edit dimensions" style="cursor:pointer">
+        ${escHtml(g.name)}
+      </td>
+      <td onclick="openEditModal(${g.id}, '${escName}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openEditModal(${g.id}, '${escName}', ${g.dims.l}, ${g.dims.w}, ${g.dims.h})}"
+          role="button" tabindex="0" title="Click to edit dimensions" style="cursor:pointer">
+        ${g.dims.l} × ${g.dims.w} × ${g.dims.h}
+      </td>
       <td>${sourceBadge(g.source)}</td>
       <td>${fitBadge(g.fit)}</td>
       <td>${cubeInfo}</td>
