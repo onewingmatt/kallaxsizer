@@ -977,11 +977,11 @@
               <tr>
                 <th style="width:40px;text-align:center" title="Exclude from shelf">✓</th>
                 <th style="width:40px;text-align:center" title="Passes size filter">Size</th>
-                <th data-sort="name">Name <span class="sort-arrow"></span></th>
-                <th data-sort="dims">Dimensions (cm) <span class="sort-arrow"></span></th>
-                <th data-sort="source">Source <span class="sort-arrow"></span></th>
-                <th data-sort="fit">Fit Status <span class="sort-arrow"></span></th>
-                <th data-sort="cubes">Cube # <span class="sort-arrow"></span></th>
+                <th data-sort="name" tabindex="0" role="button">Name <span class="sort-arrow"></span></th>
+                <th data-sort="dims" tabindex="0" role="button">Dimensions (cm) <span class="sort-arrow"></span></th>
+                <th data-sort="source" tabindex="0" role="button">Source <span class="sort-arrow"></span></th>
+                <th data-sort="fit" tabindex="0" role="button">Fit Status <span class="sort-arrow"></span></th>
+                <th data-sort="cubes" tabindex="0" role="button">Cube # <span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="gamesBody"></tbody>
@@ -2678,7 +2678,11 @@
           ? `Tiny game, treated as Card — click to override`
           : `Auto: ${SIZE_LABELS[activeCategory]} — click to override`;
 
-      return `<span class="badge badge-${activeCategory}" style="${style}" onclick="event.stopPropagation();cycleSizeOverride(${gameId})" title="${titleText}">${SIZE_LABELS[activeCategory]}</span>`;
+      return `<span class="badge badge-${activeCategory}" style="${style}"
+        onclick="event.stopPropagation();cycleSizeOverride(${gameId})"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();cycleSizeOverride(${gameId})}"
+        role="button" tabindex="0"
+        title="${titleText}">${SIZE_LABELS[activeCategory]}</span>`;
     }
 
     function renderTable(packed, orientation, minThreshold = 0, minSizeKey = 'all') {
@@ -2777,14 +2781,16 @@
   `;
       }).join('');
 
-      // Update sort arrows
+      // Update sort arrows and ARIA sort
       document.querySelectorAll('#gamesTable thead th').forEach(th => {
         const arrow = th.querySelector('.sort-arrow');
-        if (arrow) {
+        if (th.dataset.sort) {
           if (th.dataset.sort === sortCol) {
-            arrow.textContent = sortAsc ? '▲' : '▼';
+            if (arrow) arrow.textContent = sortAsc ? '▲' : '▼';
+            th.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
           } else {
-            arrow.textContent = '';
+            if (arrow) arrow.textContent = '';
+            th.removeAttribute('aria-sort');
           }
         }
       });
@@ -2826,12 +2832,19 @@
        SORTING
        ═══════════════════════════════════════════════════ */
     document.querySelectorAll('#gamesTable thead th').forEach(th => {
-      th.addEventListener('click', () => {
+      const handleSort = () => {
         const col = th.dataset.sort;
         if (!col) return;
         if (sortCol === col) { sortAsc = !sortAsc; }
         else { sortCol = col; sortAsc = true; }
         render();
+      };
+      th.addEventListener('click', handleSort);
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleSort();
+        }
       });
     });
 
