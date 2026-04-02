@@ -685,10 +685,17 @@
 
     .results-area {
       display: none;
+      opacity: 0;
     }
 
     .results-area.visible {
       display: block;
+      animation: fadeIn 0.5s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     @media (max-width: 600px) {
@@ -1777,12 +1784,14 @@
     function hideProgress() {
       progressArea.classList.remove('visible');
     }
-    function showError(msg) {
+    function showError(msg, isSuccess = false) {
       errorMsg.textContent = msg;
+      errorMsg.classList.toggle('success', !!isSuccess);
       errorMsg.classList.remove('hidden');
     }
     function hideError() {
       errorMsg.classList.add('hidden');
+      errorMsg.classList.remove('success');
     }
 
     /* ═══════════════════════════════════════════════════
@@ -2914,13 +2923,22 @@
         }
         hideProgress();
       } finally {
-        fetchBtn.disabled = false;
+        openCollectionBtn.disabled = false;
         demoBtn.disabled = false;
         resumeBtn.disabled = false;
       }
     }
 
     // Open BGG Collection for username
+    if (bggUsername) {
+      bggUsername.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          openCollectionBtn.click();
+        }
+      });
+    }
+
     if (openCollectionBtn) {
       openCollectionBtn.addEventListener('click', async () => {
         const username = bggUsername.value.trim();
@@ -2928,6 +2946,12 @@
           showError('Please enter a BGG username');
           return;
         }
+
+        const originalBtnText = openCollectionBtn.innerHTML;
+        openCollectionBtn.disabled = true;
+        openCollectionBtn.innerHTML = '⌛ Fetching...';
+        demoBtn.disabled = true;
+        resumeBtn.disabled = true;
 
         hideError();
         showProgress(10, `Fetching ${username}'s collection…`);
@@ -2986,6 +3010,11 @@
           }
           hideProgress();
           console.error('Fetch error:', err);
+        } finally {
+          openCollectionBtn.disabled = false;
+          openCollectionBtn.innerHTML = originalBtnText;
+          demoBtn.disabled = false;
+          resumeBtn.disabled = false;
         }
       });
     }
@@ -3229,9 +3258,8 @@
         updateCacheStatus();
 
         showProgress(50, `Found ${games.length} games. Fetching dimensions from BGG…`);
-        fetchBtn.disabled = true;
+        openCollectionBtn.disabled = true;
         demoBtn.disabled = true;
-        testBtn.disabled = true;
         resumeBtn.disabled = true;
 
         await fetchDimensions(games);
@@ -3429,7 +3457,8 @@
 
         saveCache($('bggUser').value, games);
         render();
-        hideError();
+        showError(`✅ Dimensions saved for "${game.name}"`, true);
+        setTimeout(hideError, 3000);
       }
       closeEditModal();
     }
@@ -3594,8 +3623,8 @@
       saveCache($('bggUser').value, games);
       render();
       closeBatchEditModal();
-      showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
-      setTimeout(hideError, 2000);
+      showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`, true);
+      setTimeout(hideError, 3000);
     }
 
     /* ═══════════════════════════════════════════════════
