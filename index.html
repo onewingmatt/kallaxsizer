@@ -2932,6 +2932,13 @@
         hideError();
         showProgress(10, `Fetching ${username}'s collection…`);
 
+        // Loading state
+        const originalText = openCollectionBtn.innerHTML;
+        openCollectionBtn.disabled = true;
+        openCollectionBtn.innerHTML = '⌛ Fetching...';
+        if (demoBtn) demoBtn.disabled = true;
+        if (resumeBtn) resumeBtn.disabled = true;
+
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
@@ -2986,6 +2993,12 @@
           }
           hideProgress();
           console.error('Fetch error:', err);
+        } finally {
+          // Restore state
+          openCollectionBtn.disabled = false;
+          openCollectionBtn.innerHTML = originalText;
+          if (demoBtn) demoBtn.disabled = false;
+          if (resumeBtn) resumeBtn.disabled = false;
         }
       });
     }
