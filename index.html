@@ -2855,6 +2855,8 @@
        FORM SUBMIT
        ═══════════════════════════════════════════════════ */
     async function doFetch(username, password) {
+      openCollectionBtn.disabled = true;
+      openCollectionBtn.innerHTML = '⌛ Fetching...';
       demoBtn.disabled = true;
       resumeBtn.disabled = true;
       try {
@@ -2914,7 +2916,8 @@
         }
         hideProgress();
       } finally {
-        fetchBtn.disabled = false;
+        openCollectionBtn.disabled = false;
+        openCollectionBtn.innerHTML = '📥 Fetch';
         demoBtn.disabled = false;
         resumeBtn.disabled = false;
       }
@@ -2931,6 +2934,10 @@
 
         hideError();
         showProgress(10, `Fetching ${username}'s collection…`);
+        openCollectionBtn.disabled = true;
+        openCollectionBtn.innerHTML = '⌛ Fetching...';
+        demoBtn.disabled = true;
+        resumeBtn.disabled = true;
 
         try {
           const controller = new AbortController();
@@ -2986,6 +2993,11 @@
           }
           hideProgress();
           console.error('Fetch error:', err);
+        } finally {
+          openCollectionBtn.disabled = false;
+          openCollectionBtn.innerHTML = '📥 Fetch';
+          demoBtn.disabled = false;
+          resumeBtn.disabled = false;
         }
       });
     }
@@ -3229,9 +3241,8 @@
         updateCacheStatus();
 
         showProgress(50, `Found ${games.length} games. Fetching dimensions from BGG…`);
-        fetchBtn.disabled = true;
+        openCollectionBtn.disabled = true;
         demoBtn.disabled = true;
-        testBtn.disabled = true;
         resumeBtn.disabled = true;
 
         await fetchDimensions(games);
@@ -3265,6 +3276,8 @@
         hideProgress();
       } finally {
         e.target.value = ''; // Reset file input
+        openCollectionBtn.disabled = false;
+        openCollectionBtn.innerHTML = '📥 Fetch';
         demoBtn.disabled = false;
         resumeBtn.disabled = false;
       }
