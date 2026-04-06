@@ -975,13 +975,13 @@
           <table id="gamesTable">
             <thead>
               <tr>
-                <th style="width:40px;text-align:center" title="Exclude from shelf">✓</th>
-                <th style="width:40px;text-align:center" title="Passes size filter">Size</th>
-                <th data-sort="name">Name <span class="sort-arrow"></span></th>
-                <th data-sort="dims">Dimensions (cm) <span class="sort-arrow"></span></th>
-                <th data-sort="source">Source <span class="sort-arrow"></span></th>
-                <th data-sort="fit">Fit Status <span class="sort-arrow"></span></th>
-                <th data-sort="cubes">Cube # <span class="sort-arrow"></span></th>
+                <th style="width:40px;text-align:center" title="Exclude from shelf" aria-label="Exclude from shelf">✓</th>
+                <th style="width:40px;text-align:center" title="Passes size filter" aria-label="Passes size filter">Size</th>
+                <th data-sort="name" role="button" tabindex="0" aria-label="Sort by Name">Name <span class="sort-arrow"></span></th>
+                <th data-sort="dims" role="button" tabindex="0" aria-label="Sort by Dimensions">Dimensions (cm) <span class="sort-arrow"></span></th>
+                <th data-sort="source" role="button" tabindex="0" aria-label="Sort by Source">Source <span class="sort-arrow"></span></th>
+                <th data-sort="fit" role="button" tabindex="0" aria-label="Sort by Fit Status">Fit Status <span class="sort-arrow"></span></th>
+                <th data-sort="cubes" role="button" tabindex="0" aria-label="Sort by Cube Number">Cube # <span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="gamesBody"></tbody>
@@ -2664,7 +2664,7 @@
       const isAutoTiny = !override && largest < MIN_SIZE_THRESHOLDS.card;
 
       if (!activeCategory) {
-        return `<span class="badge badge-common" style="cursor:pointer" onclick="event.stopPropagation();cycleSizeOverride(${gameId})" title="Click to set size category">—</span>`;
+        return `<span class="badge badge-common" style="cursor:pointer" role="button" tabindex="0" onclick="event.stopPropagation();cycleSizeOverride(${gameId})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();cycleSizeOverride(${gameId})}" title="Click to set size category" aria-label="Click to set size category">—</span>`;
       }
 
       const style = isOverride
@@ -2678,7 +2678,8 @@
           ? `Tiny game, treated as Card — click to override`
           : `Auto: ${SIZE_LABELS[activeCategory]} — click to override`;
 
-      return `<span class="badge badge-${activeCategory}" style="${style}" onclick="event.stopPropagation();cycleSizeOverride(${gameId})" title="${titleText}">${SIZE_LABELS[activeCategory]}</span>`;
+      const safeTitle = titleText.replace(/"/g, '&quot;');
+      return `<span class="badge badge-${activeCategory}" style="${style}" role="button" tabindex="0" onclick="event.stopPropagation();cycleSizeOverride(${gameId})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();cycleSizeOverride(${gameId})}" title="${safeTitle}" aria-label="${safeTitle}">${SIZE_LABELS[activeCategory]}</span>`;
     }
 
     function renderTable(packed, orientation, minThreshold = 0, minSizeKey = 'all') {
@@ -2826,12 +2827,19 @@
        SORTING
        ═══════════════════════════════════════════════════ */
     document.querySelectorAll('#gamesTable thead th').forEach(th => {
-      th.addEventListener('click', () => {
+      const sortHandler = () => {
         const col = th.dataset.sort;
         if (!col) return;
         if (sortCol === col) { sortAsc = !sortAsc; }
         else { sortCol = col; sortAsc = true; }
         render();
+      };
+      th.addEventListener('click', sortHandler);
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          sortHandler();
+        }
       });
     });
 

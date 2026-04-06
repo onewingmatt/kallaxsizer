@@ -5,3 +5,7 @@
 ## 2025-05-14 - [Standardizing Keyboard Accessibility for Monolithic UI]
 **Learning:** In a monolithic HTML file with custom-rendered components (divs, table cells), consistent focus indicators via ':focus-visible' and standardized keydown handlers for 'Enter'/'Space' are essential for parity with native interactive elements. Screen readers also require 'aria-expanded' states for collapsible sections to maintain situational awareness.
 **Action:** Apply global ':focus-visible' rules for '[role="button"]' and implement reusable 'onkeydown' listeners that match 'onclick' functionality for all custom interactive elements. Ensure state-changing interactions update their corresponding ARIA attributes immediately.
+
+## 2025-05-15 - [Escaping Attributes in Dynamic HTML Templates]
+**Learning:** When dynamically generating HTML attributes (like 'aria-label') within JavaScript template literals in 'index.html', ensure double quotes in variables are escaped (e.g., using .replace(/"/g, '&quot;')) to prevent malformed HTML syntax. Failure to do so can break the UI if the variable content contains quotes.
+**Action:** Always use .replace(/"/g, '&quot;') or a similar escaping helper when injecting strings into HTML attributes within JS templates.
