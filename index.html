@@ -2924,6 +2924,15 @@
     }
 
     // Open BGG Collection for username
+    if (bggUsername) {
+      bggUsername.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (openCollectionBtn) openCollectionBtn.click();
+        }
+      });
+    }
+
     if (openCollectionBtn) {
       openCollectionBtn.addEventListener('click', async () => {
         const username = bggUsername.value.trim();
