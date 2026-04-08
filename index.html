@@ -1596,6 +1596,12 @@
        ═══════════════════════════════════════════════════ */
     const $ = (id) => document.getElementById(id);
     const bggUsername = $('bggUsername');
+    bggUsername.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $('openCollectionBtn').click();
+      }
+    });
     const openCollectionBtn = $('openCollectionBtn');
     const resumeBtn = $('resumeBtn');
     const demoBtn = $('demoBtn');
@@ -3236,7 +3242,7 @@
 
         // Pretend this is a fetched collection now
         const fakeUsername = "CSV_Import";
-        $('bggUser').value = fakeUsername;
+        bggUsername.value = fakeUsername;
         saveCache(fakeUsername, games);
         updateCacheStatus();
 
@@ -3293,6 +3299,21 @@
       $('editW').value = w;
       $('editH').value = h;
       $('editSizeOverride').value = sizeOverrides[id] || '';
+
+      // Add enter key listeners for modal inputs
+      const modalInputs = ['editL', 'editW', 'editH', 'editSizeOverride'];
+      modalInputs.forEach(id => {
+        const el = $(id);
+        if (el && !el.dataset.hasEnterListener) {
+          el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              saveEditModal();
+            }
+          });
+          el.dataset.hasEnterListener = 'true';
+        }
+      });
 
       // Reset versions section
       const versionsSection = $('editVersionsSection');
@@ -3440,7 +3461,7 @@
           }).catch(e => console.error('Failed to publish community dims', e));
         }
 
-        saveCache($('bggUser').value, games);
+        saveCache(bggUsername.value || 'imported', games);
         render();
         hideError();
       }
@@ -3604,7 +3625,7 @@
       });
 
       localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
-      saveCache($('bggUser').value, games);
+      saveCache(bggUsername.value || 'imported', games);
       render();
       closeBatchEditModal();
       showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
