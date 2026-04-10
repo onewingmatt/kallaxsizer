@@ -631,15 +631,18 @@
       letter-spacing: 0.04em;
       color: var(--text-secondary);
       border-bottom: 2px solid var(--border);
-      cursor: pointer;
-      user-select: none;
       white-space: nowrap;
       position: sticky;
       top: 0;
       z-index: 1;
     }
 
-    thead th:hover {
+    thead th[data-sort] {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    thead th[data-sort]:hover {
       color: var(--teal);
     }
 
@@ -977,11 +980,11 @@
               <tr>
                 <th style="width:40px;text-align:center" title="Exclude from shelf">✓</th>
                 <th style="width:40px;text-align:center" title="Passes size filter">Size</th>
-                <th data-sort="name">Name <span class="sort-arrow"></span></th>
-                <th data-sort="dims">Dimensions (cm) <span class="sort-arrow"></span></th>
-                <th data-sort="source">Source <span class="sort-arrow"></span></th>
-                <th data-sort="fit">Fit Status <span class="sort-arrow"></span></th>
-                <th data-sort="cubes">Cube # <span class="sort-arrow"></span></th>
+                <th data-sort="name" role="button" tabindex="0">Name <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th data-sort="dims" role="button" tabindex="0">Dimensions (cm) <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th data-sort="source" role="button" tabindex="0">Source <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th data-sort="fit" role="button" tabindex="0">Fit Status <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th data-sort="cubes" role="button" tabindex="0">Cube # <span class="sort-arrow" aria-hidden="true"></span></th>
               </tr>
             </thead>
             <tbody id="gamesBody"></tbody>
@@ -1777,9 +1780,14 @@
     function hideProgress() {
       progressArea.classList.remove('visible');
     }
-    function showError(msg) {
+    function showError(msg, isSuccess = false) {
       errorMsg.textContent = msg;
       errorMsg.classList.remove('hidden');
+      if (isSuccess) {
+        errorMsg.classList.add('success');
+      } else {
+        errorMsg.classList.remove('success');
+      }
     }
     function hideError() {
       errorMsg.classList.add('hidden');
@@ -2777,14 +2785,16 @@
   `;
       }).join('');
 
-      // Update sort arrows
+      // Update sort arrows and ARIA
       document.querySelectorAll('#gamesTable thead th').forEach(th => {
         const arrow = th.querySelector('.sort-arrow');
         if (arrow) {
           if (th.dataset.sort === sortCol) {
             arrow.textContent = sortAsc ? '▲' : '▼';
+            th.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
           } else {
             arrow.textContent = '';
+            th.removeAttribute('aria-sort');
           }
         }
       });
@@ -2826,12 +2836,19 @@
        SORTING
        ═══════════════════════════════════════════════════ */
     document.querySelectorAll('#gamesTable thead th').forEach(th => {
-      th.addEventListener('click', () => {
+      const handleSort = () => {
         const col = th.dataset.sort;
         if (!col) return;
         if (sortCol === col) { sortAsc = !sortAsc; }
         else { sortCol = col; sortAsc = true; }
         render();
+      };
+      th.addEventListener('click', handleSort);
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleSort();
+        }
       });
     });
 
@@ -3607,7 +3624,7 @@
       saveCache($('bggUser').value, games);
       render();
       closeBatchEditModal();
-      showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
+      showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`, true);
       setTimeout(hideError, 2000);
     }
 
