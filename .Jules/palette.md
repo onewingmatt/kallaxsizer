@@ -5,3 +5,7 @@
 ## 2025-05-14 - [Standardizing Keyboard Accessibility for Monolithic UI]
 **Learning:** In a monolithic HTML file with custom-rendered components (divs, table cells), consistent focus indicators via ':focus-visible' and standardized keydown handlers for 'Enter'/'Space' are essential for parity with native interactive elements. Screen readers also require 'aria-expanded' states for collapsible sections to maintain situational awareness.
 **Action:** Apply global ':focus-visible' rules for '[role="button"]' and implement reusable 'onkeydown' listeners that match 'onclick' functionality for all custom interactive elements. Ensure state-changing interactions update their corresponding ARIA attributes immediately.
+
+## 2026-04-14 - [Aria-sort for Dynamic Tables]
+**Learning:** For sortable tables, simply making headers keyboard-focusable isn't enough; 'aria-sort' must be dynamically updated to "ascending", "descending", or "none" to inform screen reader users of the current state after a sort action.
+**Action:** Always synchronize 'aria-sort' attributes during the table's render/update cycle when sorting state changes.
