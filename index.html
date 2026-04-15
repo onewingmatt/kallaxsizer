@@ -2924,6 +2924,14 @@
     }
 
     // Open BGG Collection for username
+    if (bggUsername) {
+      bggUsername.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !openCollectionBtn.disabled) {
+          openCollectionBtn.click();
+        }
+      });
+    }
+
     if (openCollectionBtn) {
       openCollectionBtn.addEventListener('click', async () => {
         const username = bggUsername.value.trim();
@@ -3629,8 +3637,21 @@
       }
     });
 
+    function updateThemeToggleUI() {
+      const theme = document.documentElement.getAttribute('data-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      const themeToggle = $('themeToggle');
+      if (themeToggle) {
+        themeToggle.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+        themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+        themeToggle.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+      }
+    }
+
     const savedTheme = localStorage.getItem('bgsize_theme');
     if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeToggleUI();
+
     $('themeToggle').addEventListener('click', () => {
       let currentTheme = document.documentElement.getAttribute('data-theme');
       if (!currentTheme) {
@@ -3639,6 +3660,7 @@
       const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', newTheme);
       localStorage.setItem('bgsize_theme', newTheme);
+      updateThemeToggleUI();
     });
 
     /* ═══════════════════════════════════════════════════
