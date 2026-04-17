@@ -195,12 +195,14 @@
     input:focus,
     select:focus,
     .btn:focus-visible,
+    thead th[data-sort]:focus-visible,
     [role="button"]:focus-visible {
       outline: none;
       border-color: var(--teal);
       box-shadow: 0 0 0 3px var(--teal-dim);
     }
 
+    thead th[data-sort]:focus-visible,
     [role="button"]:focus-visible {
       outline: 2px solid var(--teal);
       outline-offset: 2px;
@@ -977,11 +979,11 @@
               <tr>
                 <th style="width:40px;text-align:center" title="Exclude from shelf">✓</th>
                 <th style="width:40px;text-align:center" title="Passes size filter">Size</th>
-                <th data-sort="name">Name <span class="sort-arrow"></span></th>
-                <th data-sort="dims">Dimensions (cm) <span class="sort-arrow"></span></th>
-                <th data-sort="source">Source <span class="sort-arrow"></span></th>
-                <th data-sort="fit">Fit Status <span class="sort-arrow"></span></th>
-                <th data-sort="cubes">Cube # <span class="sort-arrow"></span></th>
+                <th data-sort="name" tabindex="0" aria-sort="none">Name <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th data-sort="dims" tabindex="0" aria-sort="none">Dimensions (cm) <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th data-sort="source" tabindex="0" aria-sort="none">Source <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th data-sort="fit" tabindex="0" aria-sort="none">Fit Status <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th data-sort="cubes" tabindex="0" aria-sort="none">Cube # <span class="sort-arrow" aria-hidden="true"></span></th>
               </tr>
             </thead>
             <tbody id="gamesBody"></tbody>
@@ -2777,14 +2779,17 @@
   `;
       }).join('');
 
-      // Update sort arrows
+      // Update sort arrows and aria-sort
       document.querySelectorAll('#gamesTable thead th').forEach(th => {
         const arrow = th.querySelector('.sort-arrow');
-        if (arrow) {
-          if (th.dataset.sort === sortCol) {
-            arrow.textContent = sortAsc ? '▲' : '▼';
+        const col = th.dataset.sort;
+        if (col) {
+          if (col === sortCol) {
+            th.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
+            if (arrow) arrow.textContent = sortAsc ? '▲' : '▼';
           } else {
-            arrow.textContent = '';
+            th.setAttribute('aria-sort', 'none');
+            if (arrow) arrow.textContent = '';
           }
         }
       });
@@ -2826,12 +2831,19 @@
        SORTING
        ═══════════════════════════════════════════════════ */
     document.querySelectorAll('#gamesTable thead th').forEach(th => {
-      th.addEventListener('click', () => {
+      const handleSort = () => {
         const col = th.dataset.sort;
         if (!col) return;
         if (sortCol === col) { sortAsc = !sortAsc; }
         else { sortCol = col; sortAsc = true; }
         render();
+      };
+      th.addEventListener('click', handleSort);
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleSort();
+        }
       });
     });
 
@@ -2925,6 +2937,11 @@
 
     // Open BGG Collection for username
     if (openCollectionBtn) {
+      bggUsername.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !openCollectionBtn.disabled) {
+          openCollectionBtn.click();
+        }
+      });
       openCollectionBtn.addEventListener('click', async () => {
         const username = bggUsername.value.trim();
         if (!username) {
