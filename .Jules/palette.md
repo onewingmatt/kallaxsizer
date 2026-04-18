@@ -5,3 +5,7 @@
 ## 2025-05-14 - [Standardizing Keyboard Accessibility for Monolithic UI]
 **Learning:** In a monolithic HTML file with custom-rendered components (divs, table cells), consistent focus indicators via ':focus-visible' and standardized keydown handlers for 'Enter'/'Space' are essential for parity with native interactive elements. Screen readers also require 'aria-expanded' states for collapsible sections to maintain situational awareness.
 **Action:** Apply global ':focus-visible' rules for '[role="button"]' and implement reusable 'onkeydown' listeners that match 'onclick' functionality for all custom interactive elements. Ensure state-changing interactions update their corresponding ARIA attributes immediately.
+
+## 2025-05-15 - [Accessible Table Sorting]
+**Learning:** When adding keyboard interactivity to table headers, use 'tabindex="0"' and 'aria-sort' instead of 'role="button"'. This preserves the semantic 'columnheader' role, which is vital for screen reader users to understand table structure, while still enabling sorting via 'Enter' or 'Space'.
+**Action:** Always prefer 'aria-sort' for headers and ensure 'keydown' listeners handle both 'Enter' and 'Space' (with 'preventDefault' for Space).
