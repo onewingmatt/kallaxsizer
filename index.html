@@ -860,12 +860,12 @@
       <div id="bgDimsPanel" style="margin:1rem 0"></div>
 
       <div id="cacheStatus" style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-secondary);display:none"></div>
-      <div id="errorMsg" class="error-msg hidden"></div>
+      <div id="errorMsg" class="error-msg hidden" role="alert"></div>
       <div class="progress-area" id="progressArea">
         <div class="progress-bar-track">
           <div class="progress-bar-fill" id="progressFill"></div>
         </div>
-        <div class="progress-status" id="progressStatus"></div>
+        <div class="progress-status" id="progressStatus" aria-live="polite"></div>
       </div>
     </div>
 
@@ -2924,6 +2924,14 @@
     }
 
     // Open BGG Collection for username
+    if (bggUsername) {
+      bggUsername.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !openCollectionBtn.disabled) {
+          openCollectionBtn.click();
+        }
+      });
+    }
+
     if (openCollectionBtn) {
       openCollectionBtn.addEventListener('click', async () => {
         const username = bggUsername.value.trim();
