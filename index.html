@@ -1777,9 +1777,14 @@
     function hideProgress() {
       progressArea.classList.remove('visible');
     }
-    function showError(msg) {
+    function showError(msg, isSuccess = false) {
       errorMsg.textContent = msg;
       errorMsg.classList.remove('hidden');
+      if (isSuccess) {
+        errorMsg.classList.add('success');
+      } else {
+        errorMsg.classList.remove('success');
+      }
     }
     function hideError() {
       errorMsg.classList.add('hidden');
@@ -2924,6 +2929,14 @@
     }
 
     // Open BGG Collection for username
+    if (bggUsername) {
+      bggUsername.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !openCollectionBtn.disabled) {
+          openCollectionBtn.click();
+        }
+      });
+    }
+
     if (openCollectionBtn) {
       openCollectionBtn.addEventListener('click', async () => {
         const username = bggUsername.value.trim();
@@ -3236,7 +3249,7 @@
 
         // Pretend this is a fetched collection now
         const fakeUsername = "CSV_Import";
-        $('bggUser').value = fakeUsername;
+        bggUsername.value = fakeUsername;
         saveCache(fakeUsername, games);
         updateCacheStatus();
 
@@ -3440,7 +3453,7 @@
           }).catch(e => console.error('Failed to publish community dims', e));
         }
 
-        saveCache($('bggUser').value, games);
+        saveCache(bggUsername.value, games);
         render();
         hideError();
       }
@@ -3604,10 +3617,10 @@
       });
 
       localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
-      saveCache($('bggUser').value, games);
+      saveCache(bggUsername.value, games);
       render();
       closeBatchEditModal();
-      showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
+      showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`, true);
       setTimeout(hideError, 2000);
     }
 
