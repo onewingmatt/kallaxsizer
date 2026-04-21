@@ -643,6 +643,12 @@
       color: var(--teal);
     }
 
+    thead th[data-sort]:focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: -2px;
+      background: var(--bg-card-alt);
+    }
+
     thead th .sort-arrow {
       margin-left: 4px;
       font-size: 0.7rem;
@@ -977,11 +983,11 @@
               <tr>
                 <th style="width:40px;text-align:center" title="Exclude from shelf">✓</th>
                 <th style="width:40px;text-align:center" title="Passes size filter">Size</th>
-                <th data-sort="name">Name <span class="sort-arrow"></span></th>
-                <th data-sort="dims">Dimensions (cm) <span class="sort-arrow"></span></th>
-                <th data-sort="source">Source <span class="sort-arrow"></span></th>
-                <th data-sort="fit">Fit Status <span class="sort-arrow"></span></th>
-                <th data-sort="cubes">Cube # <span class="sort-arrow"></span></th>
+                <th data-sort="name" tabindex="0">Name <span class="sort-arrow"></span></th>
+                <th data-sort="dims" tabindex="0">Dimensions (cm) <span class="sort-arrow"></span></th>
+                <th data-sort="source" tabindex="0">Source <span class="sort-arrow"></span></th>
+                <th data-sort="fit" tabindex="0">Fit Status <span class="sort-arrow"></span></th>
+                <th data-sort="cubes" tabindex="0">Cube # <span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="gamesBody"></tbody>
@@ -2682,6 +2688,15 @@
     }
 
     function renderTable(packed, orientation, minThreshold = 0, minSizeKey = 'all') {
+      // Update aria-sort attributes
+      document.querySelectorAll('#gamesTable thead th[data-sort]').forEach(th => {
+        if (th.dataset.sort === sortCol) {
+          th.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
+        } else {
+          th.removeAttribute('aria-sort');
+        }
+      });
+
       const searchStr = $('searchFilter').value.toLowerCase();
       const fitVal = $('fitFilter').value;
 
@@ -2826,12 +2841,19 @@
        SORTING
        ═══════════════════════════════════════════════════ */
     document.querySelectorAll('#gamesTable thead th').forEach(th => {
-      th.addEventListener('click', () => {
+      const handleSort = () => {
         const col = th.dataset.sort;
         if (!col) return;
         if (sortCol === col) { sortAsc = !sortAsc; }
         else { sortCol = col; sortAsc = true; }
         render();
+      };
+      th.addEventListener('click', handleSort);
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleSort();
+        }
       });
     });
 
@@ -2925,6 +2947,13 @@
 
     // Open BGG Collection for username
     if (openCollectionBtn) {
+      bggUsername.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          openCollectionBtn.click();
+        }
+      });
+
       openCollectionBtn.addEventListener('click', async () => {
         const username = bggUsername.value.trim();
         if (!username) {
@@ -3236,7 +3265,7 @@
 
         // Pretend this is a fetched collection now
         const fakeUsername = "CSV_Import";
-        $('bggUser').value = fakeUsername;
+        bggUsername.value = fakeUsername;
         saveCache(fakeUsername, games);
         updateCacheStatus();
 
@@ -3440,7 +3469,7 @@
           }).catch(e => console.error('Failed to publish community dims', e));
         }
 
-        saveCache($('bggUser').value, games);
+        saveCache(bggUsername.value, games);
         render();
         hideError();
       }
@@ -3604,7 +3633,7 @@
       });
 
       localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
-      saveCache($('bggUser').value, games);
+      saveCache(bggUsername.value, games);
       render();
       closeBatchEditModal();
       showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
