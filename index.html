@@ -643,6 +643,12 @@
       color: var(--teal);
     }
 
+    thead th:focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: -2px;
+      color: var(--teal);
+    }
+
     thead th .sort-arrow {
       margin-left: 4px;
       font-size: 0.7rem;
@@ -977,11 +983,11 @@
               <tr>
                 <th style="width:40px;text-align:center" title="Exclude from shelf">✓</th>
                 <th style="width:40px;text-align:center" title="Passes size filter">Size</th>
-                <th data-sort="name">Name <span class="sort-arrow"></span></th>
-                <th data-sort="dims">Dimensions (cm) <span class="sort-arrow"></span></th>
-                <th data-sort="source">Source <span class="sort-arrow"></span></th>
-                <th data-sort="fit">Fit Status <span class="sort-arrow"></span></th>
-                <th data-sort="cubes">Cube # <span class="sort-arrow"></span></th>
+                <th data-sort="name" tabindex="0">Name <span class="sort-arrow"></span></th>
+                <th data-sort="dims" tabindex="0" title="Sort by volume">Dimensions (cm) <span class="sort-arrow"></span></th>
+                <th data-sort="source" tabindex="0">Source <span class="sort-arrow"></span></th>
+                <th data-sort="fit" tabindex="0">Fit Status <span class="sort-arrow"></span></th>
+                <th data-sort="cubes" tabindex="0">Cube # <span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="gamesBody"></tbody>
@@ -2777,14 +2783,16 @@
   `;
       }).join('');
 
-      // Update sort arrows
+      // Update sort arrows and aria-sort
       document.querySelectorAll('#gamesTable thead th').forEach(th => {
         const arrow = th.querySelector('.sort-arrow');
-        if (arrow) {
+        if (th.dataset.sort) {
           if (th.dataset.sort === sortCol) {
-            arrow.textContent = sortAsc ? '▲' : '▼';
+            th.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
+            if (arrow) arrow.textContent = sortAsc ? '▲' : '▼';
           } else {
-            arrow.textContent = '';
+            th.removeAttribute('aria-sort');
+            if (arrow) arrow.textContent = '';
           }
         }
       });
@@ -2826,12 +2834,19 @@
        SORTING
        ═══════════════════════════════════════════════════ */
     document.querySelectorAll('#gamesTable thead th').forEach(th => {
-      th.addEventListener('click', () => {
+      const handleSort = () => {
         const col = th.dataset.sort;
         if (!col) return;
         if (sortCol === col) { sortAsc = !sortAsc; }
         else { sortCol = col; sortAsc = true; }
         render();
+      };
+      th.addEventListener('click', handleSort);
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleSort();
+        }
       });
     });
 
@@ -2921,6 +2936,14 @@
         demoBtn.disabled = false;
         resumeBtn.disabled = false;
       }
+    }
+
+    if (bggUsername) {
+      bggUsername.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          openCollectionBtn.click();
+        }
+      });
     }
 
     // Open BGG Collection for username
@@ -3236,7 +3259,7 @@
 
         // Pretend this is a fetched collection now
         const fakeUsername = "CSV_Import";
-        $('bggUser').value = fakeUsername;
+        bggUsername.value = fakeUsername;
         saveCache(fakeUsername, games);
         updateCacheStatus();
 
@@ -3440,7 +3463,7 @@
           }).catch(e => console.error('Failed to publish community dims', e));
         }
 
-        saveCache($('bggUser').value, games);
+        saveCache(bggUsername.value, games);
         render();
         hideError();
       }
@@ -3604,7 +3627,7 @@
       });
 
       localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
-      saveCache($('bggUser').value, games);
+      saveCache(bggUsername.value, games);
       render();
       closeBatchEditModal();
       showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
