@@ -194,6 +194,7 @@
 
     input:focus,
     select:focus,
+    a:focus-visible,
     .btn:focus-visible,
     [role="button"]:focus-visible {
       outline: none;
@@ -201,6 +202,7 @@
       box-shadow: 0 0 0 3px var(--teal-dim);
     }
 
+    a:focus-visible,
     [role="button"]:focus-visible {
       outline: 2px solid var(--teal);
       outline-offset: 2px;
@@ -865,7 +867,7 @@
         <div class="progress-bar-track">
           <div class="progress-bar-fill" id="progressFill"></div>
         </div>
-        <div class="progress-status" id="progressStatus"></div>
+        <div class="progress-status" id="progressStatus" aria-live="polite"></div>
       </div>
     </div>
 
@@ -1596,6 +1598,12 @@
        ═══════════════════════════════════════════════════ */
     const $ = (id) => document.getElementById(id);
     const bggUsername = $('bggUsername');
+    bggUsername.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        openCollectionBtn.click();
+      }
+    });
     const openCollectionBtn = $('openCollectionBtn');
     const resumeBtn = $('resumeBtn');
     const demoBtn = $('demoBtn');
@@ -2917,6 +2925,7 @@
         hideProgress();
       } finally {
         openCollectionBtn.disabled = false;
+        openCollectionBtn.removeAttribute('aria-busy');
         openCollectionBtn.innerHTML = '📥 Fetch';
         demoBtn.disabled = false;
         resumeBtn.disabled = false;
@@ -2935,6 +2944,7 @@
         hideError();
         showProgress(10, `Fetching ${username}'s collection…`);
         openCollectionBtn.disabled = true;
+        openCollectionBtn.setAttribute('aria-busy', 'true');
         openCollectionBtn.innerHTML = '⌛ Fetching...';
         demoBtn.disabled = true;
         resumeBtn.disabled = true;
@@ -2995,6 +3005,7 @@
           console.error('Fetch error:', err);
         } finally {
           openCollectionBtn.disabled = false;
+          openCollectionBtn.removeAttribute('aria-busy');
           openCollectionBtn.innerHTML = '📥 Fetch';
           demoBtn.disabled = false;
           resumeBtn.disabled = false;
@@ -3236,12 +3247,13 @@
 
         // Pretend this is a fetched collection now
         const fakeUsername = "CSV_Import";
-        $('bggUser').value = fakeUsername;
+        bggUsername.value = fakeUsername;
         saveCache(fakeUsername, games);
         updateCacheStatus();
 
         showProgress(50, `Found ${games.length} games. Fetching dimensions from BGG…`);
         openCollectionBtn.disabled = true;
+        openCollectionBtn.setAttribute('aria-busy', 'true');
         demoBtn.disabled = true;
         resumeBtn.disabled = true;
 
@@ -3277,6 +3289,7 @@
       } finally {
         e.target.value = ''; // Reset file input
         openCollectionBtn.disabled = false;
+        openCollectionBtn.removeAttribute('aria-busy');
         openCollectionBtn.innerHTML = '📥 Fetch';
         demoBtn.disabled = false;
         resumeBtn.disabled = false;
@@ -3440,7 +3453,7 @@
           }).catch(e => console.error('Failed to publish community dims', e));
         }
 
-        saveCache($('bggUser').value, games);
+        saveCache(bggUsername.value, games);
         render();
         hideError();
       }
@@ -3604,7 +3617,7 @@
       });
 
       localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
-      saveCache($('bggUser').value, games);
+      saveCache(bggUsername.value, games);
       render();
       closeBatchEditModal();
       showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
