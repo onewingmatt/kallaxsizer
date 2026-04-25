@@ -643,6 +643,12 @@
       color: var(--teal);
     }
 
+    thead th[data-sort]:focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: -2px;
+      color: var(--teal);
+    }
+
     thead th .sort-arrow {
       margin-left: 4px;
       font-size: 0.7rem;
@@ -860,12 +866,12 @@
       <div id="bgDimsPanel" style="margin:1rem 0"></div>
 
       <div id="cacheStatus" style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-secondary);display:none"></div>
-      <div id="errorMsg" class="error-msg hidden"></div>
+      <div id="errorMsg" class="error-msg hidden" role="alert"></div>
       <div class="progress-area" id="progressArea">
         <div class="progress-bar-track">
           <div class="progress-bar-fill" id="progressFill"></div>
         </div>
-        <div class="progress-status" id="progressStatus"></div>
+        <div class="progress-status" id="progressStatus" aria-live="polite"></div>
       </div>
     </div>
 
@@ -977,11 +983,11 @@
               <tr>
                 <th style="width:40px;text-align:center" title="Exclude from shelf">✓</th>
                 <th style="width:40px;text-align:center" title="Passes size filter">Size</th>
-                <th data-sort="name">Name <span class="sort-arrow"></span></th>
-                <th data-sort="dims">Dimensions (cm) <span class="sort-arrow"></span></th>
-                <th data-sort="source">Source <span class="sort-arrow"></span></th>
-                <th data-sort="fit">Fit Status <span class="sort-arrow"></span></th>
-                <th data-sort="cubes">Cube # <span class="sort-arrow"></span></th>
+                <th data-sort="name" tabindex="0" aria-sort="ascending">Name <span class="sort-arrow"></span></th>
+                <th data-sort="dims" tabindex="0" aria-sort="none">Dimensions (cm) <span class="sort-arrow"></span></th>
+                <th data-sort="source" tabindex="0" aria-sort="none">Source <span class="sort-arrow"></span></th>
+                <th data-sort="fit" tabindex="0" aria-sort="none">Fit Status <span class="sort-arrow"></span></th>
+                <th data-sort="cubes" tabindex="0" aria-sort="none">Cube # <span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="gamesBody"></tbody>
@@ -2777,14 +2783,17 @@
   `;
       }).join('');
 
-      // Update sort arrows
+      // Update sort arrows and aria-sort
       document.querySelectorAll('#gamesTable thead th').forEach(th => {
+        const col = th.dataset.sort;
         const arrow = th.querySelector('.sort-arrow');
-        if (arrow) {
-          if (th.dataset.sort === sortCol) {
-            arrow.textContent = sortAsc ? '▲' : '▼';
+        if (col) {
+          if (col === sortCol) {
+            if (arrow) arrow.textContent = sortAsc ? '▲' : '▼';
+            th.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
           } else {
-            arrow.textContent = '';
+            if (arrow) arrow.textContent = '';
+            th.setAttribute('aria-sort', 'none');
           }
         }
       });
@@ -2826,12 +2835,19 @@
        SORTING
        ═══════════════════════════════════════════════════ */
     document.querySelectorAll('#gamesTable thead th').forEach(th => {
-      th.addEventListener('click', () => {
+      const handleSort = () => {
         const col = th.dataset.sort;
         if (!col) return;
         if (sortCol === col) { sortAsc = !sortAsc; }
         else { sortCol = col; sortAsc = true; }
         render();
+      };
+      th.addEventListener('click', handleSort);
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleSort();
+        }
       });
     });
 
