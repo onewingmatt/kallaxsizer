@@ -631,15 +631,24 @@
       letter-spacing: 0.04em;
       color: var(--text-secondary);
       border-bottom: 2px solid var(--border);
-      cursor: pointer;
-      user-select: none;
       white-space: nowrap;
       position: sticky;
       top: 0;
       z-index: 1;
     }
 
-    thead th:hover {
+    thead th[data-sort] {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    thead th[data-sort]:hover {
+      color: var(--teal);
+    }
+
+    thead th[data-sort]:focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: -2px;
       color: var(--teal);
     }
 
@@ -975,13 +984,13 @@
           <table id="gamesTable">
             <thead>
               <tr>
-                <th style="width:40px;text-align:center" title="Exclude from shelf">✓</th>
-                <th style="width:40px;text-align:center" title="Passes size filter">Size</th>
-                <th data-sort="name">Name <span class="sort-arrow"></span></th>
-                <th data-sort="dims">Dimensions (cm) <span class="sort-arrow"></span></th>
-                <th data-sort="source">Source <span class="sort-arrow"></span></th>
-                <th data-sort="fit">Fit Status <span class="sort-arrow"></span></th>
-                <th data-sort="cubes">Cube # <span class="sort-arrow"></span></th>
+                <th scope="col" style="width:40px;text-align:center" title="Exclude from shelf">✓</th>
+                <th scope="col" style="width:40px;text-align:center" title="Passes size filter">Size</th>
+                <th scope="col" data-sort="name" tabindex="0" aria-label="Sort by name">Name <span class="sort-arrow"></span></th>
+                <th scope="col" data-sort="dims" tabindex="0" aria-label="Sort by volume">Dimensions (cm) <span class="sort-arrow"></span></th>
+                <th scope="col" data-sort="source" tabindex="0" aria-label="Sort by data source">Source <span class="sort-arrow"></span></th>
+                <th scope="col" data-sort="fit" tabindex="0" aria-label="Sort by fit status">Fit Status <span class="sort-arrow"></span></th>
+                <th scope="col" data-sort="cubes" tabindex="0" aria-label="Sort by cube number">Cube # <span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="gamesBody"></tbody>
@@ -2777,15 +2786,15 @@
   `;
       }).join('');
 
-      // Update sort arrows
+      // Update sort arrows and ARIA sort state
       document.querySelectorAll('#gamesTable thead th').forEach(th => {
+        const isCurrentSort = th.dataset.sort === sortCol;
         const arrow = th.querySelector('.sort-arrow');
         if (arrow) {
-          if (th.dataset.sort === sortCol) {
-            arrow.textContent = sortAsc ? '▲' : '▼';
-          } else {
-            arrow.textContent = '';
-          }
+          arrow.textContent = isCurrentSort ? (sortAsc ? '▲' : '▼') : '';
+        }
+        if (th.dataset.sort) {
+          th.setAttribute('aria-sort', isCurrentSort ? (sortAsc ? 'ascending' : 'descending') : 'none');
         }
       });
     }
@@ -2826,12 +2835,19 @@
        SORTING
        ═══════════════════════════════════════════════════ */
     document.querySelectorAll('#gamesTable thead th').forEach(th => {
-      th.addEventListener('click', () => {
+      const handleSort = () => {
         const col = th.dataset.sort;
         if (!col) return;
         if (sortCol === col) { sortAsc = !sortAsc; }
         else { sortCol = col; sortAsc = true; }
         render();
+      };
+      th.addEventListener('click', handleSort);
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleSort();
+        }
       });
     });
 
