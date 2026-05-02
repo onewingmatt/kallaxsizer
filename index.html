@@ -1596,6 +1596,12 @@
        ═══════════════════════════════════════════════════ */
     const $ = (id) => document.getElementById(id);
     const bggUsername = $('bggUsername');
+    bggUsername.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        openCollectionBtn.click();
+      }
+    });
     const openCollectionBtn = $('openCollectionBtn');
     const resumeBtn = $('resumeBtn');
     const demoBtn = $('demoBtn');
@@ -3236,7 +3242,7 @@
 
         // Pretend this is a fetched collection now
         const fakeUsername = "CSV_Import";
-        $('bggUser').value = fakeUsername;
+        $('bggUsername').value = fakeUsername;
         saveCache(fakeUsername, games);
         updateCacheStatus();
 
@@ -3440,7 +3446,7 @@
           }).catch(e => console.error('Failed to publish community dims', e));
         }
 
-        saveCache($('bggUser').value, games);
+        saveCache($('bggUsername').value, games);
         render();
         hideError();
       }
@@ -3604,7 +3610,7 @@
       });
 
       localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
-      saveCache($('bggUser').value, games);
+      saveCache($('bggUsername').value, games);
       render();
       closeBatchEditModal();
       showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
