@@ -1009,19 +1009,19 @@
       </div>
 
       <div class="form-group">
-        <label>Length (cm)</label>
+        <label for="editL">Length (cm)</label>
         <input type="number" step="0.1" id="editL" min="0.1" max="200" required>
       </div>
       <div class="form-group" style="margin-top:0.75rem">
-        <label>Width (cm)</label>
+        <label for="editW">Width (cm)</label>
         <input type="number" step="0.1" id="editW" min="0.1" max="200" required>
       </div>
       <div class="form-group" style="margin-top:0.75rem">
-        <label>Height (cm)</label>
+        <label for="editH">Height (cm)</label>
         <input type="number" step="0.1" id="editH" min="0.1" max="200" required>
       </div>
       <div class="form-group" style="margin-top:0.75rem">
-        <label>Size Category Override</label>
+        <label for="editSizeOverride">Size Category Override</label>
         <select id="editSizeOverride" onchange="applyDefaultSizeForCategory(this.value)">
           <option value="">— Auto (from dimensions)</option>
           <option value="card">Card Game (~13×10×4 cm)</option>
@@ -3236,7 +3236,7 @@
 
         // Pretend this is a fetched collection now
         const fakeUsername = "CSV_Import";
-        $('bggUser').value = fakeUsername;
+        $('bggUsername').value = fakeUsername;
         saveCache(fakeUsername, games);
         updateCacheStatus();
 
@@ -3302,6 +3302,7 @@
 
       // Open modal immediately
       $('editModal').classList.add('open');
+      setTimeout(() => $('editL').focus(), 50);
 
       // Fetch versions in background (async)
       fetchVersionsForModal(id, l, w, h);
@@ -3440,7 +3441,7 @@
           }).catch(e => console.error('Failed to publish community dims', e));
         }
 
-        saveCache($('bggUser').value, games);
+        saveCache($('bggUsername').value, games);
         render();
         hideError();
       }
@@ -3561,15 +3562,16 @@
 
       let html = '';
       fallbackGames.forEach(g => {
+        const safeName = escHtml(g.name).replace(/"/g, '&quot;');
         html += `
           <div style="padding:0.75rem; border-bottom:1px solid var(--border); display:grid; grid-template-columns:1fr auto auto auto; gap:0.5rem; align-items:center">
             <div>
               <strong style="display:block; font-size:0.9rem">${escHtml(g.name)}</strong>
               <span style="font-size:0.75rem; color:var(--text-secondary)">ID: ${g.id}</span>
             </div>
-            <input type="number" step="0.1" min="0.1" class="batch-l" value="29.5" style="width:60px; padding:0.4rem" placeholder="L">
-            <input type="number" step="0.1" min="0.1" class="batch-w" value="29.5" style="width:60px; padding:0.4rem" placeholder="W">
-            <input type="number" step="0.1" min="0.1" class="batch-h" value="7.5" style="width:60px; padding:0.4rem" placeholder="H">
+            <input type="number" step="0.1" min="0.1" class="batch-l" value="29.5" style="width:60px; padding:0.4rem" placeholder="L" aria-label="${safeName} length">
+            <input type="number" step="0.1" min="0.1" class="batch-w" value="29.5" style="width:60px; padding:0.4rem" placeholder="W" aria-label="${safeName} width">
+            <input type="number" step="0.1" min="0.1" class="batch-h" value="7.5" style="width:60px; padding:0.4rem" placeholder="H" aria-label="${safeName} height">
           </div>
         `;
       });
@@ -3604,7 +3606,7 @@
       });
 
       localStorage.setItem('bgsize_customDims', JSON.stringify(customDims));
-      saveCache($('bggUser').value, games);
+      saveCache($('bggUsername').value, games);
       render();
       closeBatchEditModal();
       showError(`✅ Saved ${saved} game${saved !== 1 ? 's' : ''}`);
@@ -3614,6 +3616,13 @@
     /* ═══════════════════════════════════════════════════
        PHASE 3: UI CONTROLS & EVENTS
        ═══════════════════════════════════════════════════ */
+    $('bggUsername').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $('openCollectionBtn').click();
+      }
+    });
+
     $('searchFilter').addEventListener('input', () => {
       if (games && games.length) {
         const minSizeKey = minSizeSelect.value;
