@@ -851,7 +851,7 @@
           <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem">
             <button type="button" class="btn" onclick="closeCsvPasteModal()"
               style="background:transparent;color:var(--text);border:1px solid var(--border)">Cancel</button>
-            <button type="button" class="btn" onclick="processCsvPaste()">Load Collection</button>
+            <button type="button" id="loadCsvBtn" class="btn" onclick="processCsvPaste()">Load Collection</button>
           </div>
         </div>
       </div>
@@ -865,7 +865,7 @@
         <div class="progress-bar-track">
           <div class="progress-bar-fill" id="progressFill"></div>
         </div>
-        <div class="progress-status" id="progressStatus"></div>
+        <div class="progress-status" id="progressStatus" aria-live="polite"></div>
       </div>
     </div>
 
@@ -2924,6 +2924,15 @@
     }
 
     // Open BGG Collection for username
+    if (bggUsername) {
+      bggUsername.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          openCollectionBtn.click();
+        }
+      });
+    }
+
     if (openCollectionBtn) {
       openCollectionBtn.addEventListener('click', async () => {
         const username = bggUsername.value.trim();
@@ -2935,6 +2944,7 @@
         hideError();
         showProgress(10, `Fetching ${username}'s collection…`);
         openCollectionBtn.disabled = true;
+        openCollectionBtn.setAttribute('aria-busy', 'true');
         openCollectionBtn.innerHTML = '⌛ Fetching...';
         demoBtn.disabled = true;
         resumeBtn.disabled = true;
@@ -2995,6 +3005,7 @@
           console.error('Fetch error:', err);
         } finally {
           openCollectionBtn.disabled = false;
+        openCollectionBtn.setAttribute('aria-busy', 'false');
           openCollectionBtn.innerHTML = '📥 Fetch';
           demoBtn.disabled = false;
           resumeBtn.disabled = false;
@@ -3007,9 +3018,18 @@
       const file = e.target.files[0];
       if (!file) return;
 
+      const uploadLabel = document.querySelector('label[for="csvUpload"]');
+      const originalText = uploadLabel ? uploadLabel.innerHTML : '';
+
       hideError();
       try {
         showProgress(10, 'Reading CSV file…');
+        if (uploadLabel) {
+          uploadLabel.style.opacity = '0.6';
+          uploadLabel.style.pointerEvents = 'none';
+          uploadLabel.innerHTML = '⌛ Processing...';
+          uploadLabel.setAttribute('aria-busy', 'true');
+        }
 
         const text = await file.text();
         const lines = text.trim().split('\n');
@@ -3078,6 +3098,13 @@
         showError('Error loading CSV: ' + err.message);
         hideProgress();
         console.error('CSV parse error:', err);
+      } finally {
+        if (uploadLabel) {
+          uploadLabel.style.opacity = '';
+          uploadLabel.style.pointerEvents = '';
+          uploadLabel.innerHTML = originalText;
+          uploadLabel.setAttribute('aria-busy', 'false');
+        }
       }
     });
 
@@ -3453,6 +3480,7 @@
 
     async function processCsvPaste() {
       const csvText = $('csvPasteArea').value.trim();
+      const loadCsvBtn = $('loadCsvBtn');
       if (!csvText) {
         showError('Please paste CSV content');
         return;
@@ -3460,6 +3488,11 @@
 
       hideError();
       showProgress(10, 'Processing pasted CSV…');
+      if (loadCsvBtn) {
+        loadCsvBtn.disabled = true;
+        loadCsvBtn.setAttribute('aria-busy', 'true');
+        loadCsvBtn.textContent = '⌛ Loading...';
+      }
 
       try {
         const lines = csvText.split(/\r?\n/).filter(l => l.trim());
@@ -3549,6 +3582,12 @@
         showError('Error processing CSV: ' + err.message);
         hideProgress();
         console.error('CSV paste error:', err);
+      } finally {
+        if (loadCsvBtn) {
+          loadCsvBtn.disabled = false;
+          loadCsvBtn.setAttribute('aria-busy', 'false');
+          loadCsvBtn.textContent = 'Load Collection';
+        }
       }
     }
 
